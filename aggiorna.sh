@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #Questo script aggiorna la directory di github (~/Documenti/GitHub_projects/GTAI)
+cd /c/Users/amede/GitHub_projects/GTAI/
 
 
 #Controlla che non ci siano aggiornamenti e poi carica le modifiche fatte nello stage
