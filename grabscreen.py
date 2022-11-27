@@ -1,8 +1,23 @@
 # Done by Frannecklp
 
-import cv2
 import numpy as np
+import cv2
 import win32gui, win32ui, win32con, win32api
+import os
+
+starting_value = 1
+
+while True:
+    file_name = 'training_data-{}.npy'.format(starting_value)
+
+    if os.path.isfile(file_name):
+        print('File exists, moving along',starting_value)
+        starting_value += 1
+    else:
+        print('File does not exist, starting fresh!',starting_value)
+        
+        break
+
 
 def grab_screen(region=None):
 
@@ -34,5 +49,13 @@ def grab_screen(region=None):
     memdc.DeleteDC()
     win32gui.ReleaseDC(hwin, hwindc)
     win32gui.DeleteObject(bmp.GetHandle())
+ 
+    np.save(cv2.cvtColor("", img, cv2.COLOR_BGRA2RGB))
+    
+    #return cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
+    
+grab_screen(region=(0,40,800,600))
 
-    return cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
+
+
+

@@ -4,6 +4,7 @@ import cv2
 import time
 from getkeys import key_check
 import os
+import matplotlib.pyplot as plt
 
 w = [1,0,0,0,0,0,0,0,0]
 s = [0,1,0,0,0,0,0,0,0]
@@ -72,7 +73,12 @@ def main(file_name, starting_value):
     while(True):
         
         if not paused:
-            screen = grab_screen(region=(0,40,1920,1120))
+            #screen = grab_screen(region=(0,40,1920,1120))
+            screen = grab_screen(region=(0,40,800,600))
+            
+            plt.imshow(screen)
+            plt.show()
+            
             last_time = time.time()
             # resize to something a bit more acceptable for a CNN
             screen = cv2.resize(screen, (480,270))
@@ -94,7 +100,7 @@ def main(file_name, starting_value):
                 print(len(training_data))
                 
                 if len(training_data) == 500:
-                    np.save(file_name,training_data)
+                    np.save(file_name,training_data, allow_pickle=True)
                     print('SAVED')
                     training_data = []
                     starting_value += 1
