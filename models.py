@@ -1,754 +1,277 @@
-'''
-Copyright 2015 Google Inc. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-'''
-
-import tflearn
-from tflearn.layers.conv import conv_2d, max_pool_2d,avg_pool_2d, conv_3d, max_pool_3d, avg_pool_3d
-from tflearn.layers.core import input_data, dropout, fully_connected
-from tflearn.layers.estimator import regression
-from tflearn.layers.normalization import local_response_normalization
-from tflearn.layers.merge_ops import merge
-
-#used in v0.03-v0.06+
-def otherception3(width, height, frame_count, lr, output=9, model_name = 'otherception.model', device = 'gpu', num = '0'):
-    with tf.device('/{}:{}'.format(device,num)):
-        network = input_data(shape=[None, width, height,3], name='input')
-        conv1_7_7 = conv_2d(network, 64, 28, strides=4, activation='relu', name = 'conv1_7_7_s2')
-        pool1_3_3 = max_pool_2d(conv1_7_7, 9,strides=4)
-        pool1_3_3 = local_response_normalization(pool1_3_3)
-        conv2_3_3_reduce = conv_2d(pool1_3_3, 64,1, activation='relu',name = 'conv2_3_3_reduce')
-        conv2_3_3 = conv_2d(conv2_3_3_reduce, 192,12, activation='relu', name='conv2_3_3')
-        conv2_3_3 = local_response_normalization(conv2_3_3)
-        pool2_3_3 = max_pool_2d(conv2_3_3, kernel_size=12, strides=2, name='pool2_3_3_s2')
-        inception_3a_1_1 = conv_2d(pool2_3_3, 64, 1, activation='relu', name='inception_3a_1_1')
-        inception_3a_3_3_reduce = conv_2d(pool2_3_3, 96,1, activation='relu', name='inception_3a_3_3_reduce')
-        inception_3a_3_3 = conv_2d(inception_3a_3_3_reduce, 128,filter_size=12,  activation='relu', name = 'inception_3a_3_3')
-        inception_3a_5_5_reduce = conv_2d(pool2_3_3,16, filter_size=1,activation='relu', name ='inception_3a_5_5_reduce' )
-        inception_3a_5_5 = conv_2d(inception_3a_5_5_reduce, 32, filter_size=15, activation='relu', name= 'inception_3a_5_5')
-        inception_3a_pool = max_pool_2d(pool2_3_3, kernel_size=12, strides=1, )
-        inception_3a_pool_1_1 = conv_2d(inception_3a_pool, 32, filter_size=1, activation='relu', name='inception_3a_pool_1_1')
-
-        # merge the inception_3a__
-        inception_3a_output = merge([inception_3a_1_1, inception_3a_3_3, inception_3a_5_5, inception_3a_pool_1_1], mode='concat', axis=3)
-
-        inception_3b_1_1 = conv_2d(inception_3a_output, 128,filter_size=1,activation='relu', name= 'inception_3b_1_1' )
-        inception_3b_3_3_reduce = conv_2d(inception_3a_output, 128, filter_size=1, activation='relu', name='inception_3b_3_3_reduce')
-        inception_3b_3_3 = conv_2d(inception_3b_3_3_reduce, 192, filter_size=9,  activation='relu',name='inception_3b_3_3')
-        inception_3b_5_5_reduce = conv_2d(inception_3a_output, 32, filter_size=1, activation='relu', name = 'inception_3b_5_5_reduce')
-        inception_3b_5_5 = conv_2d(inception_3b_5_5_reduce, 96, filter_size=15,  name = 'inception_3b_5_5')
-        inception_3b_pool = max_pool_2d(inception_3a_output, kernel_size=12, strides=1,  name='inception_3b_pool')
-        inception_3b_pool_1_1 = conv_2d(inception_3b_pool, 64, filter_size=1,activation='relu', name='inception_3b_pool_1_1')
-
-        #merge the inception_3b_*
-        inception_3b_output = merge([inception_3b_1_1, inception_3b_3_3, inception_3b_5_5, inception_3b_pool_1_1], mode='concat',axis=3,name='inception_3b_output')
-
-        pool3_3_3 = max_pool_2d(inception_3b_output, kernel_size=3, strides=2, name='pool3_3_3')
-        inception_4a_1_1 = conv_2d(pool3_3_3, 192, filter_size=1, activation='relu', name='inception_4a_1_1')
-        inception_4a_3_3_reduce = conv_2d(pool3_3_3, 96, filter_size=1, activation='relu', name='inception_4a_3_3_reduce')
-        inception_4a_3_3 = conv_2d(inception_4a_3_3_reduce, 208, filter_size=3,  activation='relu', name='inception_4a_3_3')
-        inception_4a_5_5_reduce = conv_2d(pool3_3_3, 16, filter_size=1, activation='relu', name='inception_4a_5_5_reduce')
-        inception_4a_5_5 = conv_2d(inception_4a_5_5_reduce, 48, filter_size=5,  activation='relu', name='inception_4a_5_5')
-        inception_4a_pool = max_pool_2d(pool3_3_3, kernel_size=3, strides=1,  name='inception_4a_pool')
-        inception_4a_pool_1_1 = conv_2d(inception_4a_pool, 64, filter_size=1, activation='relu', name='inception_4a_pool_1_1')
-
-        inception_4a_output = merge([inception_4a_1_1, inception_4a_3_3, inception_4a_5_5, inception_4a_pool_1_1], mode='concat', axis=3, name='inception_4a_output')
+from libraries import *
+import baseFunctions as bf
 
 
-        inception_4b_1_1 = conv_2d(inception_4a_output, 160, filter_size=1, activation='relu', name='inception_4a_1_1')
-        inception_4b_3_3_reduce = conv_2d(inception_4a_output, 112, filter_size=1, activation='relu', name='inception_4b_3_3_reduce')
-        inception_4b_3_3 = conv_2d(inception_4b_3_3_reduce, 224, filter_size=3, activation='relu', name='inception_4b_3_3')
-        inception_4b_5_5_reduce = conv_2d(inception_4a_output, 24, filter_size=1, activation='relu', name='inception_4b_5_5_reduce')
-        inception_4b_5_5 = conv_2d(inception_4b_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4b_5_5')
+class CNN(nn.Module):
 
-        inception_4b_pool = max_pool_2d(inception_4a_output, kernel_size=3, strides=1,  name='inception_4b_pool')
-        inception_4b_pool_1_1 = conv_2d(inception_4b_pool, 64, filter_size=1, activation='relu', name='inception_4b_pool_1_1')
+    def __init__(self, device):
 
-        inception_4b_output = merge([inception_4b_1_1, inception_4b_3_3, inception_4b_5_5, inception_4b_pool_1_1], mode='concat', axis=3, name='inception_4b_output')
+        super(CNN, self).__init__()
 
+        self.device = device
 
-        inception_4c_1_1 = conv_2d(inception_4b_output, 128, filter_size=1, activation='relu',name='inception_4c_1_1')
-        inception_4c_3_3_reduce = conv_2d(inception_4b_output, 128, filter_size=1, activation='relu', name='inception_4c_3_3_reduce')
-        inception_4c_3_3 = conv_2d(inception_4c_3_3_reduce, 256,  filter_size=3, activation='relu', name='inception_4c_3_3')
-        inception_4c_5_5_reduce = conv_2d(inception_4b_output, 24, filter_size=1, activation='relu', name='inception_4c_5_5_reduce')
-        inception_4c_5_5 = conv_2d(inception_4c_5_5_reduce, 64,  filter_size=5, activation='relu', name='inception_4c_5_5')
-
-        inception_4c_pool = max_pool_2d(inception_4b_output, kernel_size=3, strides=1)
-        inception_4c_pool_1_1 = conv_2d(inception_4c_pool, 64, filter_size=1, activation='relu', name='inception_4c_pool_1_1')
-
-        inception_4c_output = merge([inception_4c_1_1, inception_4c_3_3, inception_4c_5_5, inception_4c_pool_1_1], mode='concat', axis=3,name='inception_4c_output')
-
-        inception_4d_1_1 = conv_2d(inception_4c_output, 112, filter_size=1, activation='relu', name='inception_4d_1_1')
-        inception_4d_3_3_reduce = conv_2d(inception_4c_output, 144, filter_size=1, activation='relu', name='inception_4d_3_3_reduce')
-        inception_4d_3_3 = conv_2d(inception_4d_3_3_reduce, 288, filter_size=3, activation='relu', name='inception_4d_3_3')
-        inception_4d_5_5_reduce = conv_2d(inception_4c_output, 32, filter_size=1, activation='relu', name='inception_4d_5_5_reduce')
-        inception_4d_5_5 = conv_2d(inception_4d_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4d_5_5')
-        inception_4d_pool = max_pool_2d(inception_4c_output, kernel_size=3, strides=1,  name='inception_4d_pool')
-        inception_4d_pool_1_1 = conv_2d(inception_4d_pool, 64, filter_size=1, activation='relu', name='inception_4d_pool_1_1')
-
-        inception_4d_output = merge([inception_4d_1_1, inception_4d_3_3, inception_4d_5_5, inception_4d_pool_1_1], mode='concat', axis=3, name='inception_4d_output')
-
-        inception_4e_1_1 = conv_2d(inception_4d_output, 256, filter_size=1, activation='relu', name='inception_4e_1_1')
-        inception_4e_3_3_reduce = conv_2d(inception_4d_output, 160, filter_size=1, activation='relu', name='inception_4e_3_3_reduce')
-        inception_4e_3_3 = conv_2d(inception_4e_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_4e_3_3')
-        inception_4e_5_5_reduce = conv_2d(inception_4d_output, 32, filter_size=1, activation='relu', name='inception_4e_5_5_reduce')
-        inception_4e_5_5 = conv_2d(inception_4e_5_5_reduce, 128,  filter_size=5, activation='relu', name='inception_4e_5_5')
-        inception_4e_pool = max_pool_2d(inception_4d_output, kernel_size=3, strides=1,  name='inception_4e_pool')
-        inception_4e_pool_1_1 = conv_2d(inception_4e_pool, 128, filter_size=1, activation='relu', name='inception_4e_pool_1_1')
-
-
-        inception_4e_output = merge([inception_4e_1_1, inception_4e_3_3, inception_4e_5_5,inception_4e_pool_1_1],axis=3, mode='concat')
-
-        pool4_3_3 = max_pool_2d(inception_4e_output, kernel_size=3, strides=2, name='pool_3_3')
-
-
-        inception_5a_1_1 = conv_2d(pool4_3_3, 256, filter_size=1, activation='relu', name='inception_5a_1_1')
-        inception_5a_3_3_reduce = conv_2d(pool4_3_3, 160, filter_size=1, activation='relu', name='inception_5a_3_3_reduce')
-        inception_5a_3_3 = conv_2d(inception_5a_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_5a_3_3')
-        inception_5a_5_5_reduce = conv_2d(pool4_3_3, 32, filter_size=1, activation='relu', name='inception_5a_5_5_reduce')
-        inception_5a_5_5 = conv_2d(inception_5a_5_5_reduce, 128, filter_size=5,  activation='relu', name='inception_5a_5_5')
-        inception_5a_pool = max_pool_2d(pool4_3_3, kernel_size=3, strides=1,  name='inception_5a_pool')
-        inception_5a_pool_1_1 = conv_2d(inception_5a_pool, 128, filter_size=1,activation='relu', name='inception_5a_pool_1_1')
-
-        inception_5a_output = merge([inception_5a_1_1, inception_5a_3_3, inception_5a_5_5, inception_5a_pool_1_1], axis=3,mode='concat')
-
-
-        inception_5b_1_1 = conv_2d(inception_5a_output, 384, filter_size=1,activation='relu', name='inception_5b_1_1')
-        inception_5b_3_3_reduce = conv_2d(inception_5a_output, 192, filter_size=1, activation='relu', name='inception_5b_3_3_reduce')
-        inception_5b_3_3 = conv_2d(inception_5b_3_3_reduce, 384,  filter_size=3,activation='relu', name='inception_5b_3_3')
-        inception_5b_5_5_reduce = conv_2d(inception_5a_output, 48, filter_size=1, activation='relu', name='inception_5b_5_5_reduce')
-        inception_5b_5_5 = conv_2d(inception_5b_5_5_reduce,128, filter_size=5,  activation='relu', name='inception_5b_5_5' )
-        inception_5b_pool = max_pool_2d(inception_5a_output, kernel_size=3, strides=1,  name='inception_5b_pool')
-        inception_5b_pool_1_1 = conv_2d(inception_5b_pool, 128, filter_size=1, activation='relu', name='inception_5b_pool_1_1')
-        inception_5b_output = merge([inception_5b_1_1, inception_5b_3_3, inception_5b_5_5, inception_5b_pool_1_1], axis=3, mode='concat')
-
-        pool5_7_7 = avg_pool_2d(inception_5b_output, kernel_size=7, strides=1)
-        pool5_7_7 = dropout(pool5_7_7, 0.4)
-
+        #self.norm = nn.LayerNorm()
+        self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
+        self.convlRelu1 = nn.LeakyReLU()
         
-        loss = fully_connected(pool5_7_7, output,activation='softmax')
-
-
+        self.conv2 = nn.Conv2d(24, 40, 5, 2, 0)
+        self.convlRelu2 = nn.LeakyReLU()
         
-        network = regression(loss, optimizer='momentum',
-                             loss='categorical_crossentropy',
-                             learning_rate=lr, name='targets')
+        self.conv3 = nn.Conv2d(40, 48, 5, 2, 0)
+        self.convlRelu3 = nn.LeakyReLU()
         
-        model = tflearn.DNN(network,
-                            max_checkpoints=0, tensorboard_verbose=0,tensorboard_dir='log')
+        
+        self.conv4 = nn.Conv2d(48, 64, 3, 1, 0)
+        self.convlRelu4 = nn.LeakyReLU()
+        
+        self.conv5 = nn.Conv2d(64, 64, 3, 1, 0)
+        self.convlRelu5 = nn.LeakyReLU()
 
-        return model
+        self.flatten = nn.Flatten()
 
+        self.linear1 = nn.Linear(220224, 1200)
+        self.lRelu1 = nn.LeakyReLU()
 
+        self.linear2 = nn.Linear(1200, 104)
+        self.lRelu2 = nn.LeakyReLU()
 
-def resnext(width, height, frame_count, lr, output=9, model_name = 'sentnet_color.model'):
-    net = input_data(shape=[None, width, height, 3], name='input')
-    net = tflearn.conv_2d(net, 16, 3, regularizer='L2', weight_decay=0.0001)
-    net = tflearn.layers.conv.resnext_block(net, n, 16, 32)
-    net = tflearn.resnext_block(net, 1, 32, 32, downsample=True)
-    net = tflearn.resnext_block(net, n-1, 32, 32)
-    net = tflearn.resnext_block(net, 1, 64, 32, downsample=True)
-    net = tflearn.resnext_block(net, n-1, 64, 32)
-    net = tflearn.batch_normalization(net)
-    net = tflearn.activation(net, 'relu')
-    net = tflearn.global_avg_pool(net)
-    # Regression
-    net = tflearn.fully_connected(net, output, activation='softmax')
-    opt = tflearn.Momentum(0.1, lr_decay=0.1, decay_step=32000, staircase=True)
-    net = tflearn.regression(net, optimizer=opt,
-                             loss='categorical_crossentropy')
+        self.linear3 = nn.Linear(104, 48)
+        self.lRelu3 = nn.LeakyReLU()
 
-    model = tflearn.DNN(net,
-                        max_checkpoints=0, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
+        self.linear4 = nn.Linear(48, 8)
+        self.lRelu4 = nn.LeakyReLU()
 
 
-def sentnet_color_2d(width, height, frame_count, lr, output=9, model_name = 'sentnet_color.model'):
-    network = input_data(shape=[None, width, height, 3], name='input')
-    network = conv_2d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 256, 5, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 256, 3, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = conv_2d(network, 256, 5, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 256, 3, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network,
-                        max_checkpoints=0, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
+        self.linear5 = nn.Linear(8, 1) #steering angle
 
 
 
 
-def inception_v3(width, height, frame_count, lr, output=9, model_name = 'sentnet_color.model'):
-    network = input_data(shape=[None, width, height,3], name='input')
-    conv1_7_7 = conv_2d(network, 64, 7, strides=2, activation='relu', name = 'conv1_7_7_s2')
-    pool1_3_3 = max_pool_2d(conv1_7_7, 3,strides=2)
-    pool1_3_3 = local_response_normalization(pool1_3_3)
-    conv2_3_3_reduce = conv_2d(pool1_3_3, 64,1, activation='relu',name = 'conv2_3_3_reduce')
-    conv2_3_3 = conv_2d(conv2_3_3_reduce, 192,3, activation='relu', name='conv2_3_3')
-    conv2_3_3 = local_response_normalization(conv2_3_3)
-    pool2_3_3 = max_pool_2d(conv2_3_3, kernel_size=3, strides=2, name='pool2_3_3_s2')
-    inception_3a_1_1 = conv_2d(pool2_3_3, 64, 1, activation='relu', name='inception_3a_1_1')
-    inception_3a_3_3_reduce = conv_2d(pool2_3_3, 96,1, activation='relu', name='inception_3a_3_3_reduce')
-    inception_3a_3_3 = conv_2d(inception_3a_3_3_reduce, 128,filter_size=3,  activation='relu', name = 'inception_3a_3_3')
-    inception_3a_5_5_reduce = conv_2d(pool2_3_3,16, filter_size=1,activation='relu', name ='inception_3a_5_5_reduce' )
-    inception_3a_5_5 = conv_2d(inception_3a_5_5_reduce, 32, filter_size=5, activation='relu', name= 'inception_3a_5_5')
-    inception_3a_pool = max_pool_2d(pool2_3_3, kernel_size=3, strides=1, )
-    inception_3a_pool_1_1 = conv_2d(inception_3a_pool, 32, filter_size=1, activation='relu', name='inception_3a_pool_1_1')
 
-    # merge the inception_3a__
-    inception_3a_output = merge([inception_3a_1_1, inception_3a_3_3, inception_3a_5_5, inception_3a_pool_1_1], mode='concat', axis=3)
+    def forward(self, x):
+        x = self.convlRelu1(self.conv1(x))
+        x = self.convlRelu2(self.conv2(x))
+        x = self.convlRelu3(self.conv3(x))
 
-    inception_3b_1_1 = conv_2d(inception_3a_output, 128,filter_size=1,activation='relu', name= 'inception_3b_1_1' )
-    inception_3b_3_3_reduce = conv_2d(inception_3a_output, 128, filter_size=1, activation='relu', name='inception_3b_3_3_reduce')
-    inception_3b_3_3 = conv_2d(inception_3b_3_3_reduce, 192, filter_size=3,  activation='relu',name='inception_3b_3_3')
-    inception_3b_5_5_reduce = conv_2d(inception_3a_output, 32, filter_size=1, activation='relu', name = 'inception_3b_5_5_reduce')
-    inception_3b_5_5 = conv_2d(inception_3b_5_5_reduce, 96, filter_size=5,  name = 'inception_3b_5_5')
-    inception_3b_pool = max_pool_2d(inception_3a_output, kernel_size=3, strides=1,  name='inception_3b_pool')
-    inception_3b_pool_1_1 = conv_2d(inception_3b_pool, 64, filter_size=1,activation='relu', name='inception_3b_pool_1_1')
+        x = self.convlRelu4(self.conv4(x))
+        x = self.convlRelu5(self.conv5(x))
 
-    #merge the inception_3b_*
-    inception_3b_output = merge([inception_3b_1_1, inception_3b_3_3, inception_3b_5_5, inception_3b_pool_1_1], mode='concat',axis=3,name='inception_3b_output')
+        x = self.flatten(x)
 
-    pool3_3_3 = max_pool_2d(inception_3b_output, kernel_size=3, strides=2, name='pool3_3_3')
-    inception_4a_1_1 = conv_2d(pool3_3_3, 192, filter_size=1, activation='relu', name='inception_4a_1_1')
-    inception_4a_3_3_reduce = conv_2d(pool3_3_3, 96, filter_size=1, activation='relu', name='inception_4a_3_3_reduce')
-    inception_4a_3_3 = conv_2d(inception_4a_3_3_reduce, 208, filter_size=3,  activation='relu', name='inception_4a_3_3')
-    inception_4a_5_5_reduce = conv_2d(pool3_3_3, 16, filter_size=1, activation='relu', name='inception_4a_5_5_reduce')
-    inception_4a_5_5 = conv_2d(inception_4a_5_5_reduce, 48, filter_size=5,  activation='relu', name='inception_4a_5_5')
-    inception_4a_pool = max_pool_2d(pool3_3_3, kernel_size=3, strides=1,  name='inception_4a_pool')
-    inception_4a_pool_1_1 = conv_2d(inception_4a_pool, 64, filter_size=1, activation='relu', name='inception_4a_pool_1_1')
+        x = self.lRelu1(self.linear1(x))
+        x = self.lRelu2(self.linear2(x))
+        x = self.lRelu3(self.linear3(x))
+        x = self.lRelu4(self.linear4(x))
+        x = self.linear5(x)
 
-    inception_4a_output = merge([inception_4a_1_1, inception_4a_3_3, inception_4a_5_5, inception_4a_pool_1_1], mode='concat', axis=3, name='inception_4a_output')
+        return x
 
 
-    inception_4b_1_1 = conv_2d(inception_4a_output, 160, filter_size=1, activation='relu', name='inception_4a_1_1')
-    inception_4b_3_3_reduce = conv_2d(inception_4a_output, 112, filter_size=1, activation='relu', name='inception_4b_3_3_reduce')
-    inception_4b_3_3 = conv_2d(inception_4b_3_3_reduce, 224, filter_size=3, activation='relu', name='inception_4b_3_3')
-    inception_4b_5_5_reduce = conv_2d(inception_4a_output, 24, filter_size=1, activation='relu', name='inception_4b_5_5_reduce')
-    inception_4b_5_5 = conv_2d(inception_4b_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4b_5_5')
+    def train_model(self, data, max_epoch=40, lr = 1e-3, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
 
-    inception_4b_pool = max_pool_2d(inception_4a_output, kernel_size=3, strides=1,  name='inception_4b_pool')
-    inception_4b_pool_1_1 = conv_2d(inception_4b_pool, 64, filter_size=1, activation='relu', name='inception_4b_pool_1_1')
-
-    inception_4b_output = merge([inception_4b_1_1, inception_4b_3_3, inception_4b_5_5, inception_4b_pool_1_1], mode='concat', axis=3, name='inception_4b_output')
+       # Argument for the training
+       #max_epoch          # Total number of epoch
+       #ckp_save_step      # Frequency for saving the model
+       #log_step           # Frequency for printing the loss
 
 
-    inception_4c_1_1 = conv_2d(inception_4b_output, 128, filter_size=1, activation='relu',name='inception_4c_1_1')
-    inception_4c_3_3_reduce = conv_2d(inception_4b_output, 128, filter_size=1, activation='relu', name='inception_4c_3_3_reduce')
-    inception_4c_3_3 = conv_2d(inception_4c_3_3_reduce, 256,  filter_size=3, activation='relu', name='inception_4c_3_3')
-    inception_4c_5_5_reduce = conv_2d(inception_4b_output, 24, filter_size=1, activation='relu', name='inception_4c_5_5_reduce')
-    inception_4c_5_5 = conv_2d(inception_4c_5_5_reduce, 64,  filter_size=5, activation='relu', name='inception_4c_5_5')
 
-    inception_4c_pool = max_pool_2d(inception_4b_output, kernel_size=3, strides=1)
-    inception_4c_pool_1_1 = conv_2d(inception_4c_pool, 64, filter_size=1, activation='relu', name='inception_4c_pool_1_1')
-
-    inception_4c_output = merge([inception_4c_1_1, inception_4c_3_3, inception_4c_5_5, inception_4c_pool_1_1], mode='concat', axis=3,name='inception_4c_output')
-
-    inception_4d_1_1 = conv_2d(inception_4c_output, 112, filter_size=1, activation='relu', name='inception_4d_1_1')
-    inception_4d_3_3_reduce = conv_2d(inception_4c_output, 144, filter_size=1, activation='relu', name='inception_4d_3_3_reduce')
-    inception_4d_3_3 = conv_2d(inception_4d_3_3_reduce, 288, filter_size=3, activation='relu', name='inception_4d_3_3')
-    inception_4d_5_5_reduce = conv_2d(inception_4c_output, 32, filter_size=1, activation='relu', name='inception_4d_5_5_reduce')
-    inception_4d_5_5 = conv_2d(inception_4d_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4d_5_5')
-    inception_4d_pool = max_pool_2d(inception_4c_output, kernel_size=3, strides=1,  name='inception_4d_pool')
-    inception_4d_pool_1_1 = conv_2d(inception_4d_pool, 64, filter_size=1, activation='relu', name='inception_4d_pool_1_1')
-
-    inception_4d_output = merge([inception_4d_1_1, inception_4d_3_3, inception_4d_5_5, inception_4d_pool_1_1], mode='concat', axis=3, name='inception_4d_output')
-
-    inception_4e_1_1 = conv_2d(inception_4d_output, 256, filter_size=1, activation='relu', name='inception_4e_1_1')
-    inception_4e_3_3_reduce = conv_2d(inception_4d_output, 160, filter_size=1, activation='relu', name='inception_4e_3_3_reduce')
-    inception_4e_3_3 = conv_2d(inception_4e_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_4e_3_3')
-    inception_4e_5_5_reduce = conv_2d(inception_4d_output, 32, filter_size=1, activation='relu', name='inception_4e_5_5_reduce')
-    inception_4e_5_5 = conv_2d(inception_4e_5_5_reduce, 128,  filter_size=5, activation='relu', name='inception_4e_5_5')
-    inception_4e_pool = max_pool_2d(inception_4d_output, kernel_size=3, strides=1,  name='inception_4e_pool')
-    inception_4e_pool_1_1 = conv_2d(inception_4e_pool, 128, filter_size=1, activation='relu', name='inception_4e_pool_1_1')
+        optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
+        scaler = torch.cuda.amp.GradScaler()
+            
+        torch.backends.cudnn.benchmark = True
+        
+        # compute execution time of the cell
+        start_time = time.time()
 
 
-    inception_4e_output = merge([inception_4e_1_1, inception_4e_3_3, inception_4e_5_5,inception_4e_pool_1_1],axis=3, mode='concat')
 
-    pool4_3_3 = max_pool_2d(inception_4e_output, kernel_size=3, strides=2, name='pool_3_3')
+        #Vector to store loss
+        history_score = defaultdict(list)
 
-
-    inception_5a_1_1 = conv_2d(pool4_3_3, 256, filter_size=1, activation='relu', name='inception_5a_1_1')
-    inception_5a_3_3_reduce = conv_2d(pool4_3_3, 160, filter_size=1, activation='relu', name='inception_5a_3_3_reduce')
-    inception_5a_3_3 = conv_2d(inception_5a_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_5a_3_3')
-    inception_5a_5_5_reduce = conv_2d(pool4_3_3, 32, filter_size=1, activation='relu', name='inception_5a_5_5_reduce')
-    inception_5a_5_5 = conv_2d(inception_5a_5_5_reduce, 128, filter_size=5,  activation='relu', name='inception_5a_5_5')
-    inception_5a_pool = max_pool_2d(pool4_3_3, kernel_size=3, strides=1,  name='inception_5a_pool')
-    inception_5a_pool_1_1 = conv_2d(inception_5a_pool, 128, filter_size=1,activation='relu', name='inception_5a_pool_1_1')
-
-    inception_5a_output = merge([inception_5a_1_1, inception_5a_3_3, inception_5a_5_5, inception_5a_pool_1_1], axis=3,mode='concat')
+        print("Start Training...\n")
 
 
-    inception_5b_1_1 = conv_2d(inception_5a_output, 384, filter_size=1,activation='relu', name='inception_5b_1_1')
-    inception_5b_3_3_reduce = conv_2d(inception_5a_output, 192, filter_size=1, activation='relu', name='inception_5b_3_3_reduce')
-    inception_5b_3_3 = conv_2d(inception_5b_3_3_reduce, 384,  filter_size=3,activation='relu', name='inception_5b_3_3')
-    inception_5b_5_5_reduce = conv_2d(inception_5a_output, 48, filter_size=1, activation='relu', name='inception_5b_5_5_reduce')
-    inception_5b_5_5 = conv_2d(inception_5b_5_5_reduce,128, filter_size=5,  activation='relu', name='inception_5b_5_5' )
-    inception_5b_pool = max_pool_2d(inception_5a_output, kernel_size=3, strides=1,  name='inception_5b_pool')
-    inception_5b_pool_1_1 = conv_2d(inception_5b_pool, 128, filter_size=1, activation='relu', name='inception_5b_pool_1_1')
-    inception_5b_output = merge([inception_5b_1_1, inception_5b_3_3, inception_5b_5_5, inception_5b_pool_1_1], axis=3, mode='concat')
+        for epoch in range(max_epoch):
 
-    pool5_7_7 = avg_pool_2d(inception_5b_output, kernel_size=7, strides=1)
-    pool5_7_7 = dropout(pool5_7_7, 0.4)
+            if (epoch+1) % log_step == 0:
+                print("---> Epoch %03i/%03i <--- " % ((epoch+1), max_epoch))
+
+            ###### TRAIN ######
+            self.train()
+
+            train_steeringAngle_loss=0
+            train_speed_loss = 0
+            train_acceleration_loss = 0
+            train_tot_loss = 0
+
+            for id_b, batch in tqdm(enumerate(data), total=len(data)):
+                # All the gradients are resetted to zero before the training step
+                optim.zero_grad()
+
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    # We predict target speeds and we save the corresponing GTs
+                    pred = self.forward(batch["img"].to(self.device))
+                    
+    
+                    gt_steeringAngle = batch["statistics"][:,0].to(self.device)
 
     
-    loss = fully_connected(pool5_7_7, output,activation='softmax')
+                    loss = nn.functional.mse_loss(pred.reshape(-1), gt_steeringAngle)
 
+                    train_tot_loss += loss * batch['statistics'].shape[0]
+
+                scaler.scale(loss).backward()
+                scaler.step(optim)
+                scaler.update()
+                
+
+
+            if (epoch+1) % log_step == 0:
+                #print('Total Train Loss: %7.4f - Steering angle Loss: %7.4f - Speed Loss: %7.4f - Acceleration Loss: %7.4f' % (train_tot_loss/len(data), train_steeringAngle_loss/len(data), train_speed_loss/len(data), train_acceleration_loss/len(data)))
+                print('Total Train Loss: %7.4f' % (train_tot_loss/len(data)))
+
+
+            history_score['loss_tot_train'].append((train_tot_loss/len(data)).item())
+
+
+            # Here we save checkpoints to avoid repeated training
+            if ((epoch+1) % (ckp_save_step) == 0):
+                print("Saving checkpoint... \n ")
+                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1):05d}.pth')
+
+
+
+        # print execution time
+        print("Total time: %s seconds" % (time.time() - start_time))
+        bf.save_object(history_score, score_dir + score_file)
+
+        return history_score
+    
+    
+class inception_resnet_v2_regr(nn.Module):
+
+    def __init__(self, device):
+
+        super(inception_resnet_v2_regr, self).__init__()
+
+        self.device = device
+        
+        self.inception = timm.create_model('inception_resnet_v2', pretrained=False)
+
+
+        self.avgPooling = nn.AvgPool2d((9,23))    
+
+        self.linear1 = nn.Linear(1536, 1024)
+        self.relu1 = nn.ReLU()
+        
+        self.linear2 = nn.Linear(1024, 256)
+        self.relu2 = nn.ReLU()
+        
+        self.linear3 = nn.Linear(256, 64)
+        self.relu3 = nn.ReLU()
+        
+        self.linear4 = nn.Linear(64, 16)
+        self.relu4 = nn.ReLU()
+
+        self.linear5 = nn.Linear(16, 1) #steering angle
+
+
+
+
+
+    def forward(self, x):
+        x = self.inception.forward_features(x)
+        
+        x = self.avgPooling(x).view(x.shape[0], 1536)
+        
+        x = self.relu1(self.linear1(x))
+        x = self.relu2(self.linear2(x))
+        x = self.relu3(self.linear3(x))
+        x = self.relu4(self.linear4(x))
+        
+        x = self.linear5(x)
+
+        return x
+
+
+    def train_model(self, data, max_epoch=40, lr = 1e-3, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
+
+       # Argument for the training
+       #max_epoch          # Total number of epoch
+       #ckp_save_step      # Frequency for saving the model
+       #log_step           # Frequency for printing the loss
+
+
+
+        optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
+        scaler = torch.cuda.amp.GradScaler()
+            
+        torch.backends.cudnn.benchmark = True
+        
+        # compute execution time of the cell
+        start_time = time.time()
+
+
+
+        #Vector to store loss
+        history_score = defaultdict(list)
+
+        print("Start Training...\n")
+
+
+        for epoch in range(max_epoch):
+
+            if (epoch+1) % log_step == 0:
+                print("---> Epoch %03i/%03i <--- " % ((epoch+1), max_epoch))
+
+            ###### TRAIN ######
+            self.train()
+
+            train_steeringAngle_loss=0
+            train_speed_loss = 0
+            train_acceleration_loss = 0
+            train_tot_loss = 0
+
+            for id_b, batch in tqdm(enumerate(data), total=len(data)):
+                # All the gradients are resetted to zero before the training step
+                optim.zero_grad()
+
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    # We predict target speeds and we save the corresponing GTs
+                    pred = self.forward(batch["img"].to(self.device))
+                    
+    
+                    gt_steeringAngle = batch["statistics"][:,0].to(self.device)
 
     
-    network = regression(loss, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-    
-    model = tflearn.DNN(network,
-                        max_checkpoints=0, tensorboard_verbose=0,tensorboard_dir='log')
+                    loss = nn.functional.mse_loss(pred.reshape(-1), gt_steeringAngle)
 
+                    train_tot_loss += loss * batch['statistics'].shape[0]
 
-    return model
+                scaler.scale(loss).backward()
+                scaler.step(optim)
+                scaler.update()
+                
 
 
+            if (epoch+1) % log_step == 0:
+                #print('Total Train Loss: %7.4f - Steering angle Loss: %7.4f - Speed Loss: %7.4f - Acceleration Loss: %7.4f' % (train_tot_loss/len(data), train_steeringAngle_loss/len(data), train_speed_loss/len(data), train_acceleration_loss/len(data)))
+                print('Total Train Loss: %7.4f' % (train_tot_loss/len(data)))
 
-def inception_v3_3d(width, height, frame_count, lr, output=9, model_name = 'sentnet_color.model'):
-    network = input_data(shape=[None, width, height,3, 1], name='input')
-    conv1_7_7 = conv_3d(network, 64, 7, strides=2, activation='relu', name = 'conv1_7_7_s2')
-    pool1_3_3 = max_pool_3d(conv1_7_7, 3,strides=2)
-    #pool1_3_3 = local_response_normalization(pool1_3_3)
-    conv2_3_3_reduce = conv_3d(pool1_3_3, 64,1, activation='relu',name = 'conv2_3_3_reduce')
-    conv2_3_3 = conv_3d(conv2_3_3_reduce, 192,3, activation='relu', name='conv2_3_3')
-    #conv2_3_3 = local_response_normalization(conv2_3_3)
-    pool2_3_3 = max_pool_3d(conv2_3_3, kernel_size=3, strides=2, name='pool2_3_3_s2')
-    inception_3a_1_1 = conv_3d(pool2_3_3, 64, 1, activation='relu', name='inception_3a_1_1')
-    inception_3a_3_3_reduce = conv_3d(pool2_3_3, 96,1, activation='relu', name='inception_3a_3_3_reduce')
-    inception_3a_3_3 = conv_3d(inception_3a_3_3_reduce, 128,filter_size=3,  activation='relu', name = 'inception_3a_3_3')
-    inception_3a_5_5_reduce = conv_3d(pool2_3_3,16, filter_size=1,activation='relu', name ='inception_3a_5_5_reduce' )
-    inception_3a_5_5 = conv_3d(inception_3a_5_5_reduce, 32, filter_size=5, activation='relu', name= 'inception_3a_5_5')
-    inception_3a_pool = max_pool_3d(pool2_3_3, kernel_size=3, strides=1, )
-    inception_3a_pool_1_1 = conv_3d(inception_3a_pool, 32, filter_size=1, activation='relu', name='inception_3a_pool_1_1')
 
-    # merge the inception_3a__
-    inception_3a_output = merge([inception_3a_1_1, inception_3a_3_3, inception_3a_5_5, inception_3a_pool_1_1], mode='concat', axis=4)
+            history_score['loss_tot_train'].append((train_tot_loss/len(data)).item())
 
-    inception_3b_1_1 = conv_3d(inception_3a_output, 128,filter_size=1,activation='relu', name= 'inception_3b_1_1' )
-    inception_3b_3_3_reduce = conv_3d(inception_3a_output, 128, filter_size=1, activation='relu', name='inception_3b_3_3_reduce')
-    inception_3b_3_3 = conv_3d(inception_3b_3_3_reduce, 192, filter_size=3,  activation='relu',name='inception_3b_3_3')
-    inception_3b_5_5_reduce = conv_3d(inception_3a_output, 32, filter_size=1, activation='relu', name = 'inception_3b_5_5_reduce')
-    inception_3b_5_5 = conv_3d(inception_3b_5_5_reduce, 96, filter_size=5,  name = 'inception_3b_5_5')
-    inception_3b_pool = max_pool_3d(inception_3a_output, kernel_size=3, strides=1,  name='inception_3b_pool')
-    inception_3b_pool_1_1 = conv_3d(inception_3b_pool, 64, filter_size=1,activation='relu', name='inception_3b_pool_1_1')
 
-    #merge the inception_3b_*
-    inception_3b_output = merge([inception_3b_1_1, inception_3b_3_3, inception_3b_5_5, inception_3b_pool_1_1], mode='concat',axis=4,name='inception_3b_output')
+            # Here we save checkpoints to avoid repeated training
+            if ((epoch+1) % (ckp_save_step) == 0):
+                print("Saving checkpoint... \n ")
+                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1):05d}.pth')
 
-    pool3_3_3 = max_pool_3d(inception_3b_output, kernel_size=3, strides=2, name='pool3_3_3')
-    inception_4a_1_1 = conv_3d(pool3_3_3, 192, filter_size=1, activation='relu', name='inception_4a_1_1')
-    inception_4a_3_3_reduce = conv_3d(pool3_3_3, 96, filter_size=1, activation='relu', name='inception_4a_3_3_reduce')
-    inception_4a_3_3 = conv_3d(inception_4a_3_3_reduce, 208, filter_size=3,  activation='relu', name='inception_4a_3_3')
-    inception_4a_5_5_reduce = conv_3d(pool3_3_3, 16, filter_size=1, activation='relu', name='inception_4a_5_5_reduce')
-    inception_4a_5_5 = conv_3d(inception_4a_5_5_reduce, 48, filter_size=5,  activation='relu', name='inception_4a_5_5')
-    inception_4a_pool = max_pool_3d(pool3_3_3, kernel_size=3, strides=1,  name='inception_4a_pool')
-    inception_4a_pool_1_1 = conv_3d(inception_4a_pool, 64, filter_size=1, activation='relu', name='inception_4a_pool_1_1')
 
-    inception_4a_output = merge([inception_4a_1_1, inception_4a_3_3, inception_4a_5_5, inception_4a_pool_1_1], mode='concat', axis=4, name='inception_4a_output')
 
+        # print execution time
+        print("Total time: %s seconds" % (time.time() - start_time))
+        bf.save_object(history_score, score_dir + score_file)
 
-    inception_4b_1_1 = conv_3d(inception_4a_output, 160, filter_size=1, activation='relu', name='inception_4a_1_1')
-    inception_4b_3_3_reduce = conv_3d(inception_4a_output, 112, filter_size=1, activation='relu', name='inception_4b_3_3_reduce')
-    inception_4b_3_3 = conv_3d(inception_4b_3_3_reduce, 224, filter_size=3, activation='relu', name='inception_4b_3_3')
-    inception_4b_5_5_reduce = conv_3d(inception_4a_output, 24, filter_size=1, activation='relu', name='inception_4b_5_5_reduce')
-    inception_4b_5_5 = conv_3d(inception_4b_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4b_5_5')
-
-    inception_4b_pool = max_pool_3d(inception_4a_output, kernel_size=3, strides=1,  name='inception_4b_pool')
-    inception_4b_pool_1_1 = conv_3d(inception_4b_pool, 64, filter_size=1, activation='relu', name='inception_4b_pool_1_1')
-
-    inception_4b_output = merge([inception_4b_1_1, inception_4b_3_3, inception_4b_5_5, inception_4b_pool_1_1], mode='concat', axis=4, name='inception_4b_output')
-
-
-    inception_4c_1_1 = conv_3d(inception_4b_output, 128, filter_size=1, activation='relu',name='inception_4c_1_1')
-    inception_4c_3_3_reduce = conv_3d(inception_4b_output, 128, filter_size=1, activation='relu', name='inception_4c_3_3_reduce')
-    inception_4c_3_3 = conv_3d(inception_4c_3_3_reduce, 256,  filter_size=3, activation='relu', name='inception_4c_3_3')
-    inception_4c_5_5_reduce = conv_3d(inception_4b_output, 24, filter_size=1, activation='relu', name='inception_4c_5_5_reduce')
-    inception_4c_5_5 = conv_3d(inception_4c_5_5_reduce, 64,  filter_size=5, activation='relu', name='inception_4c_5_5')
-
-    inception_4c_pool = max_pool_3d(inception_4b_output, kernel_size=3, strides=1)
-    inception_4c_pool_1_1 = conv_3d(inception_4c_pool, 64, filter_size=1, activation='relu', name='inception_4c_pool_1_1')
-
-    inception_4c_output = merge([inception_4c_1_1, inception_4c_3_3, inception_4c_5_5, inception_4c_pool_1_1], mode='concat', axis=4,name='inception_4c_output')
-
-    inception_4d_1_1 = conv_3d(inception_4c_output, 112, filter_size=1, activation='relu', name='inception_4d_1_1')
-    inception_4d_3_3_reduce = conv_3d(inception_4c_output, 144, filter_size=1, activation='relu', name='inception_4d_3_3_reduce')
-    inception_4d_3_3 = conv_3d(inception_4d_3_3_reduce, 288, filter_size=3, activation='relu', name='inception_4d_3_3')
-    inception_4d_5_5_reduce = conv_3d(inception_4c_output, 32, filter_size=1, activation='relu', name='inception_4d_5_5_reduce')
-    inception_4d_5_5 = conv_3d(inception_4d_5_5_reduce, 64, filter_size=5,  activation='relu', name='inception_4d_5_5')
-    inception_4d_pool = max_pool_3d(inception_4c_output, kernel_size=3, strides=1,  name='inception_4d_pool')
-    inception_4d_pool_1_1 = conv_3d(inception_4d_pool, 64, filter_size=1, activation='relu', name='inception_4d_pool_1_1')
-
-    inception_4d_output = merge([inception_4d_1_1, inception_4d_3_3, inception_4d_5_5, inception_4d_pool_1_1], mode='concat', axis=4, name='inception_4d_output')
-
-    inception_4e_1_1 = conv_3d(inception_4d_output, 256, filter_size=1, activation='relu', name='inception_4e_1_1')
-    inception_4e_3_3_reduce = conv_3d(inception_4d_output, 160, filter_size=1, activation='relu', name='inception_4e_3_3_reduce')
-    inception_4e_3_3 = conv_3d(inception_4e_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_4e_3_3')
-    inception_4e_5_5_reduce = conv_3d(inception_4d_output, 32, filter_size=1, activation='relu', name='inception_4e_5_5_reduce')
-    inception_4e_5_5 = conv_3d(inception_4e_5_5_reduce, 128,  filter_size=5, activation='relu', name='inception_4e_5_5')
-    inception_4e_pool = max_pool_3d(inception_4d_output, kernel_size=3, strides=1,  name='inception_4e_pool')
-    inception_4e_pool_1_1 = conv_3d(inception_4e_pool, 128, filter_size=1, activation='relu', name='inception_4e_pool_1_1')
-
-
-    inception_4e_output = merge([inception_4e_1_1, inception_4e_3_3, inception_4e_5_5,inception_4e_pool_1_1],axis=4, mode='concat')
-
-    pool4_3_3 = max_pool_3d(inception_4e_output, kernel_size=3, strides=2, name='pool_3_3')
-
-
-    inception_5a_1_1 = conv_3d(pool4_3_3, 256, filter_size=1, activation='relu', name='inception_5a_1_1')
-    inception_5a_3_3_reduce = conv_3d(pool4_3_3, 160, filter_size=1, activation='relu', name='inception_5a_3_3_reduce')
-    inception_5a_3_3 = conv_3d(inception_5a_3_3_reduce, 320, filter_size=3, activation='relu', name='inception_5a_3_3')
-    inception_5a_5_5_reduce = conv_3d(pool4_3_3, 32, filter_size=1, activation='relu', name='inception_5a_5_5_reduce')
-    inception_5a_5_5 = conv_3d(inception_5a_5_5_reduce, 128, filter_size=5,  activation='relu', name='inception_5a_5_5')
-    inception_5a_pool = max_pool_3d(pool4_3_3, kernel_size=3, strides=1,  name='inception_5a_pool')
-    inception_5a_pool_1_1 = conv_3d(inception_5a_pool, 128, filter_size=1,activation='relu', name='inception_5a_pool_1_1')
-
-    inception_5a_output = merge([inception_5a_1_1, inception_5a_3_3, inception_5a_5_5, inception_5a_pool_1_1], axis=4,mode='concat')
-
-
-    inception_5b_1_1 = conv_3d(inception_5a_output, 384, filter_size=1,activation='relu', name='inception_5b_1_1')
-    inception_5b_3_3_reduce = conv_3d(inception_5a_output, 192, filter_size=1, activation='relu', name='inception_5b_3_3_reduce')
-    inception_5b_3_3 = conv_3d(inception_5b_3_3_reduce, 384,  filter_size=3,activation='relu', name='inception_5b_3_3')
-    inception_5b_5_5_reduce = conv_3d(inception_5a_output, 48, filter_size=1, activation='relu', name='inception_5b_5_5_reduce')
-    inception_5b_5_5 = conv_3d(inception_5b_5_5_reduce,128, filter_size=5,  activation='relu', name='inception_5b_5_5' )
-    inception_5b_pool = max_pool_3d(inception_5a_output, kernel_size=3, strides=1,  name='inception_5b_pool')
-    inception_5b_pool_1_1 = conv_3d(inception_5b_pool, 128, filter_size=1, activation='relu', name='inception_5b_pool_1_1')
-    inception_5b_output = merge([inception_5b_1_1, inception_5b_3_3, inception_5b_5_5, inception_5b_pool_1_1], axis=4, mode='concat')
-
-    pool5_7_7 = avg_pool_3d(inception_5b_output, kernel_size=7, strides=1)
-    pool5_7_7 = dropout(pool5_7_7, 0.4)
-
-    
-    loss = fully_connected(pool5_7_7, output,activation='softmax')
-
-
-    
-    network = regression(loss, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-    
-    model = tflearn.DNN(network, checkpoint_path=model_name,
-                        max_checkpoints=1, tensorboard_verbose=0,tensorboard_dir='log')
-
-
-    return model
-
-
-
-
-
-
-def sentnet_LSTM_gray(width, height, frame_count, lr, output=9):
-    network = input_data(shape=[None, width, height], name='input')
-    #network = tflearn.input_data(shape=[None, 28, 28], name='input')
-    network = tflearn.lstm(network, 128, return_seq=True)
-    network = tflearn.lstm(network, 128)
-    network = tflearn.fully_connected(network, 9, activation='softmax')
-    network = tflearn.regression(network, optimizer='adam',
-    loss='categorical_crossentropy', name="output1")
-
-    model = tflearn.DNN(network, checkpoint_path='model_lstm',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-
-
-
-def sentnet_color(width, height, frame_count, lr, output=9, model_name = 'sentnet_color.model'):
-    network = input_data(shape=[None, width, height,3, 1], name='input')
-    network = conv_3d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path=model_name,
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-
-
-def sentnet_frames(width, height, frame_count, lr, output=9):
-    network = input_data(shape=[None, width, height,frame_count, 1], name='input')
-    network = conv_3d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-
-def sentnet2(width, height, frame_count, lr, output=9):
-    network = input_data(shape=[None, width, height, frame_count, 1], name='input')
-    network = conv_3d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 3, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-def sentnet(width, height, frame_count, lr, output=9):
-    network = input_data(shape=[None, width, height, frame_count, 1], name='input')
-    network = conv_3d(network, 96, 11, strides=4, activation='relu')
-    network = avg_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = avg_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = avg_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 384, 3, activation='relu')
-    network = conv_3d(network, 256, 3, activation='relu')
-    network = avg_pool_3d(network, 3, strides=2)
-    #network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-
-def alexnet2(width, height, lr, output=3):
-    network = input_data(shape=[None, width, height, 1], name='input')
-    network = conv_2d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 256, 5, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 256, 3, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = conv_2d(network, 256, 5, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 256, 3, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
-
-
-
-def sentnet_v0(width, height, frame_count, lr, output=9):
-    network = input_data(shape=[None, width, height, frame_count, 1], name='input')
-    network = conv_3d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-    
-    #network = local_response_normalization(network)
-    
-    network = conv_3d(network, 256, 5, activation='relu')
-    network = max_pool_3d(network, 3, strides=2)
-
-    #network = local_response_normalization(network)
-    
-    network = conv_3d(network, 384, 3, 3, activation='relu')
-    network = conv_3d(network, 384, 3, 3, activation='relu')
-    network = conv_3d(network, 256, 3, 3, activation='relu')
-
-    network = max_pool_3d(network, 3, strides=2)
-
-    #network = local_response_normalization(network)
-    
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-    
-
-
-def alexnet(width, height, lr, output=3):
-    network = input_data(shape=[None, width, height, 1], name='input')
-    network = conv_2d(network, 96, 11, strides=4, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 256, 5, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 384, 3, activation='relu')
-    network = conv_2d(network, 256, 3, activation='relu')
-    network = max_pool_2d(network, 3, strides=2)
-    network = local_response_normalization(network)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='tanh')
-    network = dropout(network, 0.5)
-    network = fully_connected(network, output, activation='softmax')
-    network = regression(network, optimizer='momentum',
-                         loss='categorical_crossentropy',
-                         learning_rate=lr, name='targets')
-
-    model = tflearn.DNN(network, checkpoint_path='model_alexnet',
-                        max_checkpoints=1, tensorboard_verbose=0, tensorboard_dir='log')
-
-    return model
-
-
+        return history_score
