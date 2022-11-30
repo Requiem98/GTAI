@@ -22,22 +22,32 @@ if __name__ == '__main__':
     
     
     train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess, load_all=False)
-    dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=2)
+    dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=2)
+    
+    
+    batches = []
+    
+    #for i, b in enumerate(dataloader):
+    #    batches.append(b)
+     #   if(i > 10):
+     #       break
     
  
     inception = inception_resnet_v2_regr(device = device).to(device)
-    
 
-
-    load_state = False
     
-    if load_state:
-        epoch = 2
-        inception.load_state_dict(torch.load(CKP_DIR + f'{(epoch):05d}.pth'))
-      
-        
-      
-    inception.train_model(dataloader, max_epoch=20, lr=5e-3, log_step=1, ckp_save_step = 5, ckp_dir = CKP_DIR, score_dir = SCORE_DIR, score_file = SCORE_FILE)
+    inception.train_model(dataloader,
+                          #batches, 
+                          max_epoch=20, 
+                          lr=0.1,
+                          gamma = 0.8,
+                          weight_decay=1e-6,
+                          log_step=1, 
+                          ckp_save_step = 20, 
+                          ckp_dir = CKP_DIR, 
+                          score_dir = SCORE_DIR, 
+                          score_file = SCORE_FILE,
+                          ckp_epoch=0)
     
     
-    
+#Current Learning Rate:  0.0012  --- Total Train Loss: 117.3330

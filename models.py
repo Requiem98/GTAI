@@ -14,10 +14,10 @@ class CNN(nn.Module):
         self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
         self.convlRelu1 = nn.LeakyReLU()
         
-        self.conv2 = nn.Conv2d(24, 40, 5, 2, 0)
+        self.conv2 = nn.Conv2d(24, 36, 5, 2, 0)
         self.convlRelu2 = nn.LeakyReLU()
         
-        self.conv3 = nn.Conv2d(40, 48, 5, 2, 0)
+        self.conv3 = nn.Conv2d(36, 48, 5, 2, 0)
         self.convlRelu3 = nn.LeakyReLU()
         
         
@@ -67,13 +67,21 @@ class CNN(nn.Module):
         return x
 
 
-    def train_model(self, data, max_epoch=40, lr = 1e-3, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
+    def train_model(self, data, max_epoch=40, lr = 1e-3, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl", ckp_epoch=0):
 
        # Argument for the training
        #max_epoch          # Total number of epoch
        #ckp_save_step      # Frequency for saving the model
        #log_step           # Frequency for printing the loss
+       #lr                 # Learning rate
+       #weight_decay       # Weight decay
+       #ckp_dir            # Directory where to save the checkpoints
+       #score_dir          # Directory where to save the scores
+       #score_file         # Name of the scores file
+       #ckp_epoch          # Load weights from indicated epoch if a corresponding checkpoint file is present
 
+        if(ckp_epoch != 0):
+            self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
 
 
         optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
@@ -106,20 +114,20 @@ class CNN(nn.Module):
             train_tot_loss = 0
 
             for id_b, batch in tqdm(enumerate(data), total=len(data)):
-                # All the gradients are resetted to zero before the training step
+                
                 optim.zero_grad()
 
-                with torch.autocast(device_type="cuda", dtype=torch.float16):
-                    # We predict target speeds and we save the corresponing GTs
-                    pred = self.forward(batch["img"].to(self.device))
+                with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=False):
                     
-    
+                    pred = self.forward(batch["img"].to(self.device))                  
+
                     gt_steeringAngle = batch["statistics"][:,0].to(self.device)
 
     
                     loss = nn.functional.mse_loss(pred.reshape(-1), gt_steeringAngle)
 
                     train_tot_loss += loss * batch['statistics'].shape[0]
+
 
                 scaler.scale(loss).backward()
                 scaler.step(optim)
@@ -128,17 +136,16 @@ class CNN(nn.Module):
 
 
             if (epoch+1) % log_step == 0:
-                #print('Total Train Loss: %7.4f - Steering angle Loss: %7.4f - Speed Loss: %7.4f - Acceleration Loss: %7.4f' % (train_tot_loss/len(data), train_steeringAngle_loss/len(data), train_speed_loss/len(data), train_acceleration_loss/len(data)))
                 print('Total Train Loss: %7.4f' % (train_tot_loss/len(data)))
 
 
-            history_score['loss_tot_train'].append((train_tot_loss/len(data)).item())
+            history_score['loss_tot_train'].append(train_tot_loss/len(data))
 
 
             # Here we save checkpoints to avoid repeated training
             if ((epoch+1) % (ckp_save_step) == 0):
                 print("Saving checkpoint... \n ")
-                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1):05d}.pth')
+                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1+ckp_epoch):05d}.pth')
 
 
 
@@ -147,6 +154,8 @@ class CNN(nn.Module):
         bf.save_object(history_score, score_dir + score_file)
 
         return history_score
+        
+
     
     
 class inception_resnet_v2_regr(nn.Module):
@@ -195,16 +204,32 @@ class inception_resnet_v2_regr(nn.Module):
         return x
 
 
-    def train_model(self, data, max_epoch=40, lr = 1e-3, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
+    def train_model(self, data, max_epoch=40, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl", ckp_epoch=0):
 
        # Argument for the training
        #max_epoch          # Total number of epoch
        #ckp_save_step      # Frequency for saving the model
        #log_step           # Frequency for printing the loss
-
-
-
+       #lr                 # Learning rate
+       #weight_decay       # Weight decay
+       #ckp_dir            # Directory where to save the checkpoints
+       #score_dir          # Directory where to save the scores
+       #score_file         # Name of the scores file
+       #ckp_epoch          # If the checkpoint file is passed, this indicate the checkpoint training epoch
+       #ckp_epoch          # Load weights from indicated epoch if a corresponding checkpoint file is present
+       
+       
         optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
+
+        if(ckp_epoch != 0):
+            self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
+            optim.load_state_dict(torch.load(ckp_dir + f'optim_{(ckp_epoch):05d}.pth'))
+            history_score = bf.read_object(score_dir + f'{(ckp_epoch):05d}_' + score_file)
+        else:
+            history_score = defaultdict(list)
+            
+        
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma, last_epoch= ckp_epoch-1, verbose=False)
         scaler = torch.cuda.amp.GradScaler()
             
         torch.backends.cudnn.benchmark = True
@@ -214,8 +239,6 @@ class inception_resnet_v2_regr(nn.Module):
 
 
 
-        #Vector to store loss
-        history_score = defaultdict(list)
 
         print("Start Training...\n")
 
@@ -234,14 +257,13 @@ class inception_resnet_v2_regr(nn.Module):
             train_tot_loss = 0
 
             for id_b, batch in tqdm(enumerate(data), total=len(data)):
-                # All the gradients are resetted to zero before the training step
+                
                 optim.zero_grad()
 
-                with torch.autocast(device_type="cuda", dtype=torch.float16):
-                    # We predict target speeds and we save the corresponing GTs
-                    pred = self.forward(batch["img"].to(self.device))
+                with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=False):
                     
-    
+                    pred = self.forward(batch["img"].to(self.device))                  
+
                     gt_steeringAngle = batch["statistics"][:,0].to(self.device)
 
     
@@ -249,29 +271,31 @@ class inception_resnet_v2_regr(nn.Module):
 
                     train_tot_loss += loss * batch['statistics'].shape[0]
 
+
                 scaler.scale(loss).backward()
                 scaler.step(optim)
                 scaler.update()
                 
-
+            scheduler.step()
 
             if (epoch+1) % log_step == 0:
-                #print('Total Train Loss: %7.4f - Steering angle Loss: %7.4f - Speed Loss: %7.4f - Acceleration Loss: %7.4f' % (train_tot_loss/len(data), train_steeringAngle_loss/len(data), train_speed_loss/len(data), train_acceleration_loss/len(data)))
-                print('Total Train Loss: %7.4f' % (train_tot_loss/len(data)))
+                print('Current Learning Rate: %7.4f  --- Total Train Loss: %7.4f' % (scheduler.get_last_lr()[0], train_tot_loss/len(data)))
 
 
-            history_score['loss_tot_train'].append((train_tot_loss/len(data)).item())
+            history_score['loss_tot_train'].append(train_tot_loss/len(data))
 
 
             # Here we save checkpoints to avoid repeated training
             if ((epoch+1) % (ckp_save_step) == 0):
                 print("Saving checkpoint... \n ")
-                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1):05d}.pth')
+                torch.save(self.state_dict(), ckp_dir + f'{(epoch+1+ckp_epoch):05d}.pth')
+                torch.save(optim.state_dict(), ckp_dir + f'optim_{(epoch+1+ckp_epoch):05d}.pth')
+                bf.save_object(history_score, score_dir + f'{(epoch+1+ckp_epoch):05d}_' + score_file)
 
 
-
+        
+        
         # print execution time
         print("Total time: %s seconds" % (time.time() - start_time))
-        bf.save_object(history_score, score_dir + score_file)
 
         return history_score
