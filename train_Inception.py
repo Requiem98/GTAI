@@ -32,6 +32,7 @@ if __name__ == '__main__':
  
     inception = inception_resnet_v2_regr(device = device).to(device)
 
+        blabla
     
     inception.train_model(dataloader,
                           max_epoch=10, 
