@@ -258,9 +258,6 @@ class inception_resnet_v2_regr(nn.Module):
             ###### TRAIN ######
             self.train()
 
-            train_steeringAngle_loss=0
-            train_speed_loss = 0
-            train_acceleration_loss = 0
             train_tot_loss = 0
 
             for id_b, batch in tqdm(enumerate(data), total=len(data)):

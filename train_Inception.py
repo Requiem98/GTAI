@@ -3,7 +3,6 @@ import baseFunctions as bf
 from models import inception_resnet_v2_regr
 
 
-#if __name__ == '__main__':
 if __name__ == '__main__':
     
     torch.multiprocessing.set_start_method('spawn')
