@@ -40,7 +40,7 @@ if __name__ == '__main__':
                           gamma = 0.8,
                           weight_decay=1e-6,
                           log_step=1, 
-                          ckp_save_step = 5, 
+                          ckp_save_step = 1, 
                           ckp_dir = CKP_DIR, 
                           score_dir = SCORE_DIR, 
                           score_file = SCORE_FILE,
