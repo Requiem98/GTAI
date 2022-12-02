@@ -32,27 +32,33 @@ def torch_delete(tensor, indices):
 
 
 class SteeringSampler():
-      def __init__(self, path_to_csv):
+    def __init__(self, path_to_csv):
+        
         self.data = pd.read_csv(path_to_csv, index_col=0)
         self.weights = np.abs(self.data["steeringAngle"].to_numpy()) + 1e-6
         self.weights = self.weights/np.sum(self.weights)
         self.indexes = np.arange(len(self.data))
-
-      def __iter__(self):
+    
+    def __iter__(self):
         return self
-
-      def __next__(self):
+    
+    def __next__(self):
         try:
-          idx = np.random.choice(self.indexes, p=self.weights, size=1, replace=False)
-          self.weights[idx] = 0.0
-          self.weights = np.true_divide(self.weights,np.sum(self.weights))
+            idx = np.random.choice(self.indexes, p=self.weights, size=1, replace=False)
+            self.weights[idx] = 0.0
+            self.weights = np.true_divide(self.weights,np.sum(self.weights))
         except:
-          idx = np.random.choice(self.indexes, size=1, replace=False)
-
+            idx = np.random.choice(self.indexes, size=1, replace=False)
+      
         return idx[0]
-
-      def __len__(self):
+    
+    def __len__(self):
         return len(self.data)
+    
+    def reset_sampler(self):
+        self.weights = np.abs(self.data["steeringAngle"].to_numpy()) + 1e-6
+        self.weights = self.weights/np.sum(self.weights)
+        
 
 
 def normalize_steering(x):

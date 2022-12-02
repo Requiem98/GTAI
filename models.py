@@ -211,7 +211,7 @@ class inception_resnet_v2_regr(nn.Module):
         return torch.mean(weights * (pred - target) ** 2)
 
 
-    def train_model(self, data, max_epoch=40, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl", ckp_epoch=0):
+    def train_model(self, data, max_epoch=40, steps_per_epoch=0, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl", ckp_epoch=0):
 
        # Argument for the training
        #max_epoch          # Total number of epoch
@@ -225,15 +225,17 @@ class inception_resnet_v2_regr(nn.Module):
        #ckp_epoch          # If the checkpoint file is passed, this indicate the checkpoint training epoch
        #ckp_epoch          # Load weights from indicated epoch if a corresponding checkpoint file is present
        
+       if(steps_per_epoch==0):
+           steps_per_epoch=len(data)
        
-        optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
+       optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
 
-        if(ckp_epoch != 0):
-            self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
-            optim.load_state_dict(torch.load(ckp_dir + f'optim_{(ckp_epoch):05d}.pth'))
-            history_score = bf.read_object(score_dir + f'{(ckp_epoch):05d}_' + score_file)
-        else:
-            history_score = defaultdict(list)
+       if(ckp_epoch != 0):
+           self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
+           optim.load_state_dict(torch.load(ckp_dir + f'optim_{(ckp_epoch):05d}.pth'))
+           history_score = bf.read_object(score_dir + f'{(ckp_epoch):05d}_' + score_file)
+       else:
+           history_score = defaultdict(list)
             
         
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma, last_epoch= ckp_epoch-1, verbose=False)
@@ -260,7 +262,7 @@ class inception_resnet_v2_regr(nn.Module):
 
             train_tot_loss = 0
 
-            for id_b, batch in tqdm(enumerate(data), total=len(data)):
+            for id_b, batch in tqdm(enumerate(data), total=steps_per_epoch):
                 
                 optim.zero_grad()
 
@@ -279,6 +281,10 @@ class inception_resnet_v2_regr(nn.Module):
                 scaler.scale(loss).backward()
                 scaler.step(optim)
                 scaler.update()
+                
+                if(steps_per_epoch == id_b):
+                    data.sampler.reset_sampler()
+                    break
                 
             scheduler.step()
 

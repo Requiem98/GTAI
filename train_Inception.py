@@ -23,7 +23,7 @@ if __name__ == '__main__':
     train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess)
     
     dataloader = DataLoader(train_dataset, 
-                            batch_size=8, 
+                            batch_size=6, 
                             sampler=bf.SteeringSampler("./Data/data.csv"), 
                             num_workers=2, 
                             prefetch_factor = 4)
@@ -32,7 +32,6 @@ if __name__ == '__main__':
  
     inception = inception_resnet_v2_regr(device = device).to(device)
 
-        blabla
     
     inception.train_model(dataloader,
                           max_epoch=10, 
