@@ -46,5 +46,5 @@ if __name__ == '__main__':
                           score_file = SCORE_FILE,
                           ckp_epoch=0)
     
-    
+
 #Current Learning Rate:  0.0012  --- Total Train Loss: 117.3330
