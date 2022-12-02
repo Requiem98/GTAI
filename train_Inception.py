@@ -25,7 +25,7 @@ if __name__ == '__main__':
     dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=2)
     
     
-    batches = []
+    #batches = []
     
     #for i, b in enumerate(dataloader):
     #    batches.append(b)
@@ -38,16 +38,16 @@ if __name__ == '__main__':
     
     inception.train_model(dataloader,
                           #batches, 
-                          max_epoch=20, 
+                          max_epoch=10, 
                           lr=0.1,
                           gamma = 0.8,
                           weight_decay=1e-6,
                           log_step=1, 
-                          ckp_save_step = 20, 
+                          ckp_save_step = 10, 
                           ckp_dir = CKP_DIR, 
                           score_dir = SCORE_DIR, 
                           score_file = SCORE_FILE,
-                          ckp_epoch=0)
+                          ckp_epoch=20)
     
     
 #Current Learning Rate:  0.0012  --- Total Train Loss: 117.3330

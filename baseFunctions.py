@@ -25,7 +25,44 @@ def free_memory():
     torch.cuda.empty_cache()
 
 
-    
+def torch_delete(tensor, indices):
+    mask = torch.ones(tensor.numel(), dtype=torch.bool)
+    mask[indices] = False
+    return tensor[mask]
+
+
+class SteeringSampler():
+      def __init__(self, path_to_csv):
+        self.data = pd.read_csv(path_to_csv, index_col=0)
+        self.weights = np.abs(self.data["steeringAngle"].to_numpy()) + 1e-6
+        self.weights = self.weights/np.sum(self.weights)
+        self.indexes = np.arange(len(self.data))
+
+      def __iter__(self):
+        return self
+
+      def __next__(self):
+        try:
+          idx = np.random.choice(self.indexes, p=self.weights, size=1, replace=False)
+          self.weights[idx] = 0.0
+          self.weights = np.true_divide(self.weights,np.sum(self.weights))
+        except:
+          idx = np.random.choice(self.indexes, size=1, replace=False)
+
+        return idx[0]
+
+      def __len__(self):
+        return len(self.data)
+
+
+def normalize_steering(x):
+    x = x+40.5
+    return x / 80.5
+
+
+def reverse_normalized_steering(x):
+    x = x*80.5
+    return x - 40.5
     
 
 
@@ -66,14 +103,16 @@ class GTADataset(Dataset):
         
         image = io.imread(img_name)
         
-        image = image[:350, :]
+        image = image[:480, :]
         
         if self.transform:
             image = self.transform(image)
     
         statistics = self.statistics.iloc[idx, :3]
         statistics = np.array(statistics, dtype=np.float32)
+        statistics[0] = normalize_steering(statistics[0])
         statistics = torch.tensor(statistics, dtype=torch.float32)
+    
 
             
             
