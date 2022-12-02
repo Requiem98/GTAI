@@ -57,7 +57,7 @@ class SteeringSampler():
 
 def normalize_steering(x):
     x = x+40.5
-    return x / 80.5
+    return np.true_divide(x, 80.5)
 
 
 def reverse_normalized_steering(x):

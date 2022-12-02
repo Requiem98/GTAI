@@ -166,7 +166,7 @@ class inception_resnet_v2_regr(nn.Module):
 
         self.device = device
         
-        self.inception = timm.create_model('inception_resnet_v2', pretrained=False)
+        self.inception = timm.create_model('inception_resnet_v2', pretrained=True)
 
 
         self.avgPooling = nn.AvgPool2d((9,23))    
@@ -202,6 +202,13 @@ class inception_resnet_v2_regr(nn.Module):
         x = self.linear5(x)
 
         return x
+    
+    
+    def weighted_mse_loss(self, pred, target):
+        
+        weights = torch.abs(bf.reverse_normalized_steering(pred))
+        
+        return torch.mean(weights * (pred - target) ** 2)
 
 
     def train_model(self, data, max_epoch=40, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_dir = "", score_dir = "", score_file = "score.pkl", ckp_epoch=0):
@@ -267,7 +274,7 @@ class inception_resnet_v2_regr(nn.Module):
                     gt_steeringAngle = batch["statistics"][:,0].to(self.device)
 
     
-                    loss = nn.functional.mse_loss(pred.reshape(-1), gt_steeringAngle)
+                    loss = self.weighted_mse_loss(pred.reshape(-1), gt_steeringAngle)
 
                     train_tot_loss += loss * batch['statistics'].shape[0]
 
@@ -293,8 +300,11 @@ class inception_resnet_v2_regr(nn.Module):
                 bf.save_object(history_score, score_dir + f'{(epoch+1+ckp_epoch):05d}_' + score_file)
 
 
-        
-        
+        print("Saving checkpoint... \n ")
+        torch.save(self.state_dict(), ckp_dir + f'{(epoch+1+ckp_epoch):05d}.pth')
+        torch.save(optim.state_dict(), ckp_dir + f'optim_{(epoch+1+ckp_epoch):05d}.pth')
+        bf.save_object(history_score, score_dir + f'{(epoch+1+ckp_epoch):05d}_' + score_file)
+
         # print execution time
         print("Total time: %s seconds" % (time.time() - start_time))
 

@@ -21,33 +21,30 @@ if __name__ == '__main__':
     SCORE_FILE = 'history_score.pkl'
     
     
-    train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess, load_all=False)
-    dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=2)
+    train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess)
     
+    dataloader = DataLoader(train_dataset, 
+                            batch_size=8, 
+                            sampler=bf.SteeringSampler("./Data/data.csv"), 
+                            num_workers=2, 
+                            prefetch_factor = 4)
     
-    #batches = []
-    
-    #for i, b in enumerate(dataloader):
-    #    batches.append(b)
-     #   if(i > 10):
-     #       break
-    
+
  
     inception = inception_resnet_v2_regr(device = device).to(device)
 
     
     inception.train_model(dataloader,
-                          #batches, 
                           max_epoch=10, 
                           lr=0.1,
                           gamma = 0.8,
                           weight_decay=1e-6,
                           log_step=1, 
-                          ckp_save_step = 10, 
+                          ckp_save_step = 5, 
                           ckp_dir = CKP_DIR, 
                           score_dir = SCORE_DIR, 
                           score_file = SCORE_FILE,
-                          ckp_epoch=20)
+                          ckp_epoch=0)
     
     
 #Current Learning Rate:  0.0012  --- Total Train Loss: 117.3330

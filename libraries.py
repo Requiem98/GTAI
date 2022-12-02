@@ -19,4 +19,3 @@ import timm
 
 
 DATA_ROOT_DIR = "./Data/"
-
