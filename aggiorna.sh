@@ -1,7 +1,13 @@
 #!/bin/bash
 
 #Questo script aggiorna la directory di github (~/Documenti/GitHub_projects/GTAI)
-cd /c/Users/amede/GitHub_projects/GTAI/
+os=`uname`
+pcname=`hostname`
+
+if [ $os == "MINGW64_NT-10.0-19044" ]
+then
+	cd /c/Users/amede/GitHub_projects/GTAI/
+fi
 
 #Controlla che non ci siano aggiornamenti e poi carica le modifiche fatte nello stage
 git pull origin main
