@@ -35,6 +35,7 @@ if __name__ == '__main__':
     
     inception.train_model(dataloader,
                           max_epoch=10, 
+                          steps_per_epoch=2000,
                           lr=0.1,
                           gamma = 0.8,
                           weight_decay=1e-6,

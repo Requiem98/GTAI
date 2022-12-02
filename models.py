@@ -225,19 +225,19 @@ class inception_resnet_v2_regr(nn.Module):
        #ckp_epoch          # If the checkpoint file is passed, this indicate the checkpoint training epoch
        #ckp_epoch          # Load weights from indicated epoch if a corresponding checkpoint file is present
        
-       if(steps_per_epoch==0):
-           steps_per_epoch=len(data)
+        if(steps_per_epoch==0):
+            steps_per_epoch=len(data)
        
-       optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
+        optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay = weight_decay)
 
-       if(ckp_epoch != 0):
-           self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
-           optim.load_state_dict(torch.load(ckp_dir + f'optim_{(ckp_epoch):05d}.pth'))
-           history_score = bf.read_object(score_dir + f'{(ckp_epoch):05d}_' + score_file)
-       else:
-           history_score = defaultdict(list)
+        if(ckp_epoch != 0):
+            self.load_state_dict(torch.load(ckp_dir + f'{(ckp_epoch):05d}.pth'))
+            optim.load_state_dict(torch.load(ckp_dir + f'optim_{(ckp_epoch):05d}.pth'))
+            history_score = bf.read_object(score_dir + f'{(ckp_epoch):05d}_' + score_file)
+        else:
+            history_score = defaultdict(list)
             
-        
+       
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma, last_epoch= ckp_epoch-1, verbose=False)
         scaler = torch.cuda.amp.GradScaler()
             
