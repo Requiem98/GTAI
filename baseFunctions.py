@@ -69,6 +69,17 @@ def normalize_steering(x):
 def reverse_normalized_steering(x):
     x = x*80.5
     return x - 40.5
+
+
+
+def get_backbone_state_dict(sd, backbone_name):
+    
+    sd_backbone = dict()
+
+    for k,v in sd.items():
+        sd_backbone[k.replace("inception"+".", "")] = v
+        
+    return sd_backbone
     
 
 

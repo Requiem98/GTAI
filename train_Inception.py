@@ -34,8 +34,8 @@ if __name__ == '__main__':
 
     
     inception.train_model(dataloader,
-                          max_epoch=10, 
-                          steps_per_epoch=2000,
+                          max_epoch=1, 
+                          steps_per_epoch=10,
                           lr=0.1,
                           gamma = 0.8,
                           weight_decay=1e-6,
@@ -44,7 +44,9 @@ if __name__ == '__main__':
                           ckp_dir = CKP_DIR, 
                           score_dir = SCORE_DIR, 
                           score_file = SCORE_FILE,
-                          ckp_epoch=0)
+                          ckp_epoch=21)
+    
+    
     
 
-#Current Learning Rate:  0.0012  --- Total Train Loss: 117.3330
+#Current Learning Rate:  0.0006  --- Total Train Loss: 32.9991

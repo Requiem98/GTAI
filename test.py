@@ -1,17 +1,23 @@
 from libraries import *
 import baseFunctions as bf
+CKP_DIR = "./Data/models/Inception/checkpoint/"
+
 
 
 data = pd.read_csv(DATA_ROOT_DIR + 'data.csv', index_col=0)
 
-for i in range(21):
-    i+1
 
-i
+#Check loss history
+scores = bf.read_object("./Data/models/Inception/scores/00022_history_score.pkl")
 
-
-o = normalize_steering(data['steeringAngle'][(data['steeringAngle'] == 0)].to_numpy(dtype=np.float32))
+plt.plot(torch.tensor(scores['loss_tot_train']).cpu().numpy()[1:])
 
 
-bf.reverse_normalized_steering(o)
 
+
+# Load pre-trained backbone
+inception = timm.create_model('inception_resnet_v2', pretrained=False)
+
+state_dict_backbone = bf.get_backbone_state_dict(torch.load(CKP_DIR + f'{(21):05d}.pth'), "inception")
+
+inception.load_state_dict(state_dict_backbone, strict=False)

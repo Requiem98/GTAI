@@ -1,10 +1,8 @@
 from libraries import *
 import baseFunctions as bf
 from models import CNN
-import timm
 
 
-#if __name__ == '__main__':
 if __name__ == '__main__':
     
     torch.multiprocessing.set_start_method('spawn')
@@ -21,21 +19,29 @@ if __name__ == '__main__':
     SCORE_DIR = "./Data/models/CNN/scores/"
     SCORE_FILE = 'history_score.pkl'
     
+    train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess)
     
-    train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess, load_all=False)
-    dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2)
+    dataloader = DataLoader(train_dataset, 
+                            batch_size=128, 
+                            sampler=bf.SteeringSampler("./Data/data.csv"), 
+                            num_workers=2, 
+                            prefetch_factor = 4)
     
-    cnn = CNN(device=device).to(device)
-      
-    
-    
-    cnn.train_model(dataloader, 
-                    max_epoch=1, 
-                    #lr=5e-3, 
-                    log_step=1, 
-                    ckp_save_step = 5, 
-                    ckp_dir = CKP_DIR, 
-                    score_dir = SCORE_DIR, 
-                    score_file = SCORE_FILE)
 
+ 
+    cnn = CNN(device = device).to(device)
 
+    
+    cnn.train_model(dataloader,
+                          max_epoch=15, 
+                          steps_per_epoch=0,
+                          lr=0.01,
+                          gamma = 0.8,
+                          weight_decay=1e-6,
+                          log_step=1, 
+                          ckp_save_step = 5, 
+                          ckp_dir = CKP_DIR, 
+                          score_dir = SCORE_DIR, 
+                          score_file = SCORE_FILE,
+                          ckp_epoch=0)
+    
