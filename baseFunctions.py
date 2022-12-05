@@ -92,7 +92,7 @@ preprocess = T.Compose([
 class GTADataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None, load_all=False):
+    def __init__(self, csv_file, root_dir, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -112,8 +112,7 @@ class GTADataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-            
-       
+        
 
         img_name = os.path.join(self.root_dir + "images/",
                                 self.statistics.iloc[idx, 3])

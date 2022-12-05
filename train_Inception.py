@@ -1,6 +1,6 @@
 from libraries import *
 import baseFunctions as bf
-from models import inception_resnet_v2_regr
+from models import inception_resnet_v2_regr, Trainer
 
 
 if __name__ == '__main__':
@@ -25,28 +25,31 @@ if __name__ == '__main__':
     dataloader = DataLoader(train_dataset, 
                             batch_size=6, 
                             sampler=bf.SteeringSampler("./Data/data.csv"), 
-                            num_workers=2, 
-                            prefetch_factor = 4)
+                            num_workers=20, 
+                            prefetch_factor = 2)
     
 
  
     inception = inception_resnet_v2_regr(device = device).to(device)
+    
+    trainer = Trainer(inception, dataloader, 
+                      ckp_dir = CKP_DIR, 
+                      score_dir = SCORE_DIR, 
+                      score_file = SCORE_FILE)
 
     
-    inception.train_model(dataloader,
-                          max_epoch=1, 
-                          steps_per_epoch=10,
-                          lr=0.1,
-                          gamma = 0.8,
-                          weight_decay=1e-6,
-                          log_step=1, 
-                          ckp_save_step = 1, 
-                          ckp_dir = CKP_DIR, 
-                          score_dir = SCORE_DIR, 
-                          score_file = SCORE_FILE,
-                          ckp_epoch=21)
-    
-    
+    trainer.train_model(max_epoch=5, 
+                        steps_per_epoch=0,
+                        lr=0.01,
+                        gamma = 0.8,
+                        weight_decay=1e-6,
+                        log_step=1, 
+                        ckp_save_step = 5,
+                        ckp_epoch=21)
+
     
 
-#Current Learning Rate:  0.0006  --- Total Train Loss: 32.9991
+#== Best Result ==
+#Current Learning Rate:  0.0006  --- Total Train Loss: 32.9991  22 epochs with steps_per_epoch = 2000
+
+

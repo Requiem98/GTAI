@@ -8,9 +8,11 @@ data = pd.read_csv(DATA_ROOT_DIR + 'data.csv', index_col=0)
 
 
 #Check loss history
-scores = bf.read_object("./Data/models/Inception/scores/00022_history_score.pkl")
+scores = bf.read_object("./Data/models/CNN/scores/00020_history_score.pkl")
 
-plt.plot(torch.tensor(scores['loss_tot_train']).cpu().numpy()[1:])
+plt.plot(scores['loss_tot_train'][15:])
+
+plt.plot(scores['MAE_train'][15:])
 
 
 
