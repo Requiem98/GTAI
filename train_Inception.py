@@ -32,6 +32,7 @@ if __name__ == '__main__':
  
     inception = inception_resnet_v2_regr(device = device).to(device)
     
+    
     trainer = Trainer(inception, dataloader, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
@@ -44,12 +45,12 @@ if __name__ == '__main__':
                         gamma = 0.8,
                         weight_decay=1e-6,
                         log_step=1, 
-                        ckp_save_step = 5,
-                        ckp_epoch=21)
+                        ckp_save_step = 1,
+                        ckp_epoch=5)
 
     
 
 #== Best Result ==
 #Current Learning Rate:  0.0006  --- Total Train Loss: 32.9991  22 epochs with steps_per_epoch = 2000
-
+#Current Learning Rate: 0.00328 --- Total Train Loss:  0.0032 --- MAE:  0.1848 5 epoche with steps_per_epoch = 0
 

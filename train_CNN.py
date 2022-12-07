@@ -44,9 +44,11 @@ if __name__ == '__main__':
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=25)
+                        ckp_epoch=30)
     
 
 #== Best Result ==
 #Current Learning Rate:  0.0001 --- Total Train Loss:  1.8021 --- MAE:  4.4562 epoch=20
 #Current Learning Rate:  0.0000 --- Total Train Loss:  0.7356 --- MAE:  4.0525 epoch=25
+#Current Learning Rate: 0.00002 --- Total Train Loss:  0.2871 --- MAE:  3.9666 epoch=30
+#Current Learning Rate: 0.00002 --- Total Train Loss:  0.1097 --- MAE:  3.9529 epoch 35
