@@ -122,7 +122,7 @@ preprocess = T.Compose([
 class GTADataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None):
+    def __init__(self, csv_file, root_dir, img_dir, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -133,6 +133,7 @@ class GTADataset(Dataset):
         """
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir
+        self.img_dir = img_dir
         self.transform = transform
     
                 
@@ -145,7 +146,7 @@ class GTADataset(Dataset):
             idx = idx.tolist()
         
         
-        img_names = self.root_dir + "images/" + self.statistics.iloc[idx, 3]
+        img_names = self.root_dir + self.img_dir + self.statistics.iloc[idx, 3]
     
         if(isinstance(img_names, str)):
             img_names = [img_names]
