@@ -61,9 +61,10 @@ new_data
 
 
 
+train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
 
 
-
+train_dataset.__getitem__(0)
 
 
 

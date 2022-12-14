@@ -19,24 +19,23 @@ if __name__ == '__main__':
     SCORE_DIR = "./Data/models/Inception/scores/"
     SCORE_FILE = 'history_score.pkl'
     
-    train_dataset = bf.GTADataset("data_train.csv", DATA_ROOT_DIR, bf.preprocess)
-    test_dataset = bf.GTADataset("data_test.csv", DATA_ROOT_DIR, bf.preprocess)
+    train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
+    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.preprocess)
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=32, 
-                            sampler=bf.SteeringSampler("./Data/data_train.csv"), 
+                            sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
                             num_workers=10)
 
     
     test_dl = DataLoader(test_dataset, 
-                            batch_size=32,  
+                            batch_size=32, 
                             num_workers=10)
 
     
 
  
     inception = inception_resnet_v2_regr(device = device).to(device)
-    #inception.load_state_dict(torch.load("./Data/models/Inception/checkpoint/00025.pth"))
     inception.load_state_dict(torch.load("./Data/models/Inception/checkpoint/00008.pth"))
     
     
@@ -45,7 +44,7 @@ if __name__ == '__main__':
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
     
-    """
+    
     trainer.train_model(train_dl,
                         max_epoch=10, 
                         steps_per_epoch=0,
@@ -55,13 +54,17 @@ if __name__ == '__main__':
                         log_step=1, 
                         ckp_save_step = 2,
                         ckp_epoch=0)
-    """
+    
     print('Starting test...')
     _, _, o = trainer.test_model(test_dl)
     
-    plt.plot(o[1:])
+    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
+    
+    a=10000
+    plt.plot(bf.reverse_normalized_steering(o[1:a]))
+    plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
 
 #== Best Result ==
-#Current Learning Rate: 0.00009 --- Total Train Loss:  0.0020 --- MAE:  2.5893  25 epochs with steps_per_epoch = 2000
+
 
 

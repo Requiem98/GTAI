@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=15)
+                        ckp_epoch=20)
 
     print('Starting test...')
     _, _, o = trainer.test_model(test_dl)

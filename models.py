@@ -279,10 +279,10 @@ class inception_resnet_v2_regr(nn.Module):
     
     
     def loss(self, pred, target):
-        #weights = torch.abs(bf.reverse_normalized_steering(pred))
-        #return torch.mean(weights * (pred - target) ** 2)
         
-        return torch.nn.functional.mse_loss(pred, target)
+        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
+        
+        return torch.mean(weights * (pred - target) ** 2)
     
     def MeanAbsoluteError(self, pred, target):
         return torch.nn.functional.l1_loss(pred.reshape(-1), target)

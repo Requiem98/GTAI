@@ -120,23 +120,14 @@ preprocess = T.Compose([
 
 
 class GTADataset(Dataset):
-    """Face Landmarks dataset."""
 
-    def __init__(self, csv_file, root_dir, img_dir, transform=None):
-        """
-        Args:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-            train: Whether if load from train directory or test directory
-        """
+    def __init__(self, csv_file, root_dir, transform=None, img_dir="images/"):
+
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir
         self.img_dir = img_dir
         self.transform = transform
     
-                
 
     def __len__(self):
         return len(self.statistics)
@@ -150,6 +141,7 @@ class GTADataset(Dataset):
     
         if(isinstance(img_names, str)):
             img_names = [img_names]
+            
             
         images = list()
         
@@ -166,6 +158,7 @@ class GTADataset(Dataset):
         
         if(len(img_names)>1):
             images = [el.unsqueeze(0) for el in images]
+            
         images = torch.cat(images)
         
         statistics = self.statistics.iloc[idx, :3]
