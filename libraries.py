@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
 from torchvision.transforms import functional as F
-import pickle
+import pickle5 as pickle
 import PIL
 import os
 from skimage import io, transform
