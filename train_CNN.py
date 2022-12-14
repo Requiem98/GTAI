@@ -15,40 +15,63 @@ if __name__ == '__main__':
         bf.get_memory()
         
     
+    #Path per i salvataggi dei checkpoints
+    #SINTASSI: ./Data/models/NOME_MODELLO/etc...
     CKP_DIR = "./Data/models/CNN/checkpoint/"
     SCORE_DIR = "./Data/models/CNN/scores/"
     SCORE_FILE = 'history_score.pkl'
     
-    train_dataset = bf.GTADataset("data.csv", DATA_ROOT_DIR, bf.preprocess)
+        
+    train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
+    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.preprocess)
     
-    dataloader = DataLoader(train_dataset, 
-                            batch_size=128, 
-                            sampler=bf.SteeringSampler("./Data/data.csv"), 
-                            num_workers=20, 
-                            prefetch_factor = 2)
+    train_dl = DataLoader(train_dataset, 
+                            batch_size=256, 
+                            sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
+                            num_workers=10)
+
+    
+    test_dl = DataLoader(test_dataset, 
+                            batch_size=256, 
+                            num_workers=10)
 
 
-    cnn = CNN(device = device).to(device)
+    cnn = CNN(device = device).to(device) #qui inserire modello da trainare
+    #cnn.load_state_dict(torch.load("./Data/models/CNN/checkpoint/00015.pth"))
     
     
-    trainer = Trainer(cnn, dataloader, 
+    trainer = Trainer(cnn, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
 
-    
-    trainer.train_model(max_epoch=5, 
+    trainer.train_model(train_dl,
+                        max_epoch=35, 
                         steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=30)
+                        ckp_epoch=15)
+
+    print('Starting test...')
+    _, _, o = trainer.test_model(test_dl)
+    
+    
+    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
+    
+    a=10000
+    plt.plot(bf.reverse_normalized_steering(o[1:a]))
+    plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
+    
+    
+
     
 
 #== Best Result ==
-#Current Learning Rate:  0.0001 --- Total Train Loss:  1.8021 --- MAE:  4.4562 epoch=20
-#Current Learning Rate:  0.0000 --- Total Train Loss:  0.7356 --- MAE:  4.0525 epoch=25
-#Current Learning Rate: 0.00002 --- Total Train Loss:  0.2871 --- MAE:  3.9666 epoch=30
-#Current Learning Rate: 0.00002 --- Total Train Loss:  0.1097 --- MAE:  3.9529 epoch 35
+#Total Test Loss:  0.0909 --- MAE:  7.8666
+
+
+
+

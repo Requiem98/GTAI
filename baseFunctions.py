@@ -31,6 +31,25 @@ def torch_delete(tensor, indices):
     return tensor[mask]
 
 
+
+def create_train_test_dataframe(data, group_n=1, test_size=0.2, save_dir = "./Data/", test_file_name = "data_test.csv", train_file_name = "data_train.csv", save=True):
+    
+    idx_order = np.array(list(SubsetRandomSampler(list(BatchSampler(SequentialSampler(data.index), batch_size=group_n, drop_last=True)))), dtype=np.int64)
+    
+    idx_tr, idx_test = train_test_split(idx_order, test_size=test_size)
+    
+    data_train = data.iloc[idx_tr.flatten()]
+    
+    data_test = data.iloc[idx_test.flatten()]
+    
+    if(save):
+        data_train.to_csv(save_dir + train_file_name)
+        data_test.to_csv(save_dir + test_file_name)
+    
+    return data_train, data_test
+
+
+
 class SteeringSampler():
     def __init__(self, path_to_csv):
         
@@ -63,14 +82,21 @@ class SteeringSampler():
 
 def normalize_steering(x):
     x = x+40.5
-    return np.true_divide(x, 80.5)
+    return x / 81
 
 
 def reverse_normalized_steering(x):
-    x = x*80.5
+    x = x*81
     return x - 40.5
 
 
+
+def weight_fun(x, alpha=4):
+    if(isinstance(x, torch.Tensor)):
+        return torch.sqrt(x)*alpha
+    else:
+        return np.sqrt(x)*alpha
+    
 
 def get_backbone_state_dict(sd, backbone_name):
     
@@ -85,7 +111,11 @@ def get_backbone_state_dict(sd, backbone_name):
 
 preprocess = T.Compose([
     T.ToPILImage(),
-    T.ToTensor()
+    T.Resize((240,400)),
+    T.ColorJitter(brightness=(0.5,2)),
+    T.RandomHorizontalFlip(p=0.5),
+    T.RandomAffine(degrees = 0, translate=(0.1,0.1)),
+    T.ToTensor(),
 ])
 
 
@@ -99,6 +129,7 @@ class GTADataset(Dataset):
             root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
+            train: Whether if load from train directory or test directory
         """
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir
@@ -113,17 +144,29 @@ class GTADataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         
-
-        img_name = os.path.join(self.root_dir + "images/",
-                                self.statistics.iloc[idx, 3])
         
-        image = io.imread(img_name)
-        
-        image = image[:480, :]
-        
-        if self.transform:
-            image = self.transform(image)
+        img_names = self.root_dir + "images/" + self.statistics.iloc[idx, 3]
     
+        if(isinstance(img_names, str)):
+            img_names = [img_names]
+            
+        images = list()
+        
+        for im_name in img_names:
+            
+            image = io.imread(im_name)
+        
+            image = image[:480, :]
+        
+            if self.transform:
+                image = self.transform(image)
+        
+            images.append(image)
+        
+        if(len(img_names)>1):
+            images = [el.unsqueeze(0) for el in images]
+        images = torch.cat(images)
+        
         statistics = self.statistics.iloc[idx, :3]
         statistics = np.array(statistics, dtype=np.float32)
         statistics[0] = normalize_steering(statistics[0])
@@ -132,6 +175,6 @@ class GTADataset(Dataset):
 
             
             
-        sample = {'img': image, 'statistics': statistics}
+        sample = {'img': images, 'statistics': statistics}
 
         return sample

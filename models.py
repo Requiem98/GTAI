@@ -5,14 +5,13 @@ import baseFunctions as bf
 
 class Trainer():
     
-    def __init__(self, model, data, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
+    def __init__(self, model, ckp_dir = "", score_dir = "", score_file = "score.pkl"):
         self.model = model
-        self.data = data
         self.ckp_dir = ckp_dir
         self.score_dir= score_dir
         self.score_file = score_file
         
-    def train_model(self, max_epoch=40, steps_per_epoch=0, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_epoch=0):
+    def train_model(self, data, max_epoch=40, steps_per_epoch=0, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_epoch=0):
 
        # Argument for the training
        #max_epoch          # Total number of epoch
@@ -25,6 +24,8 @@ class Trainer():
        #score_file         # Name of the scores file
        #ckp_epoch          # If the checkpoint file is passed, this indicate the checkpoint training epoch
        #ckp_epoch          # Load weights from indicated epoch if a corresponding checkpoint file is present
+       
+        self.data = data
        
         if(steps_per_epoch==0):
             steps_per_epoch=len(self.data)
@@ -40,7 +41,7 @@ class Trainer():
             
        
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma, last_epoch= ckp_epoch-1, verbose=False)
-        scaler = torch.cuda.amp.GradScaler()
+        #scaler = torch.cuda.amp.GradScaler()
             
         torch.backends.cudnn.benchmark = True
         
@@ -68,28 +69,27 @@ class Trainer():
                 
                 optim.zero_grad()
 
-                with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=False):
-                    
-                    pred = self.model(batch["img"].to(self.model.device))                  
-
-                    gt_steeringAngle = batch["statistics"][:,0].to(self.model.device)
-    
-                    loss = self.model.weighted_mse_loss(pred.reshape(-1), gt_steeringAngle)
-                    
-                    with torch.no_grad():
-                        train_tot_loss += loss * batch['statistics'].shape[0]
-                        mae += self.model.MeanAbsoluteError(pred, gt_steeringAngle) * batch['statistics'].shape[0]
-
-
-                scaler.scale(loss).backward()
-                scaler.step(optim)
-                scaler.update()
                 
+                pred = self.model(batch["img"].to(self.model.device))                  
+
+                gt_steeringAngle = batch["statistics"][:,0].to(self.model.device)
+
+                loss = self.model.loss(pred.reshape(-1), gt_steeringAngle)
+                
+                with torch.no_grad():
+                    train_tot_loss += loss * batch['statistics'].shape[0]
+                    mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)) * batch['statistics'].shape[0]
+
+                loss.backward()
+                optim.step()
+
                 
                 
                 if(steps_per_epoch == id_b):
                     self.data.sampler.reset_sampler()
                     break
+            
+            self.data.sampler.reset_sampler()
                 
             if(scheduler.get_last_lr()[0] > 1e-4):
                 scheduler.step()
@@ -120,7 +120,41 @@ class Trainer():
         # print execution time
         print("Total time: %s seconds" % (time.time() - start_time))
         
-    
+        
+    def test_model(self, test_data):
+        
+        self.model.eval()
+        
+        test_tot_loss=0
+        mae=0
+        
+        preds = np.array([0])
+        
+        for id_b, batch in tqdm(enumerate(test_data), total=len(test_data)):
+            
+
+            with torch.no_grad():
+                
+                pred = self.model(batch["img"].to(self.model.device))                  
+
+                gt_steeringAngle = batch["statistics"][:,0].to(self.model.device)
+
+                loss = self.model.loss(pred.reshape(-1), gt_steeringAngle)
+                
+                
+                test_tot_loss += loss * batch['statistics'].shape[0]
+                mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)) * batch['statistics'].shape[0]
+                
+                preds = np.concatenate([preds, pred.cpu().numpy().flatten()])
+                
+        print('Total Test Loss: %7.4f --- MAE: %7.4f' % (test_tot_loss/len(test_data), mae/len(test_data)))
+                
+        return test_tot_loss/len(test_data), mae/len(test_data), preds
+
+        
+        
+        
+
 
 
 class CNN(nn.Module):
@@ -150,7 +184,7 @@ class CNN(nn.Module):
 
         self.flatten = nn.Flatten()
 
-        self.linear1 = nn.Linear(315456, 100)
+        self.linear1 = nn.Linear(63296, 100)
         self.lRelu1 = nn.LeakyReLU()
 
         self.linear2 = nn.Linear(100, 50)
@@ -183,15 +217,14 @@ class CNN(nn.Module):
         return x
     
     
-    def weighted_mse_loss(self, pred, target):
+    def loss(self, pred, target):
         
-        weights = torch.abs(bf.reverse_normalized_steering(pred))
+        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
         
         return torch.mean(weights * (pred - target) ** 2)
     
     def MeanAbsoluteError(self, pred, target):
         return torch.nn.functional.l1_loss(pred.reshape(-1), target)
-
 
 
         
@@ -209,7 +242,7 @@ class inception_resnet_v2_regr(nn.Module):
         self.inception = timm.create_model('inception_resnet_v2', pretrained=True)
 
 
-        self.avgPooling = nn.AvgPool2d((9,23))    
+        self.avgPooling = nn.AvgPool2d((6,11))    
 
         self.linear1 = nn.Linear(1536, 1024)
         self.relu1 = nn.ReLU()
@@ -245,11 +278,13 @@ class inception_resnet_v2_regr(nn.Module):
      
     
     
-    def weighted_mse_loss(self, pred, target):
+    def loss(self, pred, target):
+        #weights = torch.abs(bf.reverse_normalized_steering(pred))
+        #return torch.mean(weights * (pred - target) ** 2)
         
-        weights = torch.abs(bf.reverse_normalized_steering(pred))
-        
-        return torch.mean(weights * (pred - target) ** 2)
+        return torch.nn.functional.mse_loss(pred, target)
     
     def MeanAbsoluteError(self, pred, target):
         return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+    
+    
