@@ -8,7 +8,11 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
 from torchvision.transforms import functional as F
-import pickle5 as pickle
+try:
+    import pickle5 as pickle
+except:
+    print("pickle5 is not installed. Importing pickle instead")
+    import pickle
 import PIL
 import os
 from skimage import io, transform
