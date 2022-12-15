@@ -11,12 +11,13 @@ DATA_ROOT_DIR + "images/" + data.iloc[[1,2,3,4], 3]
 
 
 #Check loss history
-scores = bf.read_object("./Data/models/CNN/scores/00020_history_score.pkl")
+scores = bf.read_object("./Data/models/Inception/scores/00008_history_score.pkl")
 
-plt.plot(scores['loss_tot_train'][15:])
+plt.plot(scores['loss_tot_train'][1:])
 
-plt.plot(scores['MAE_train'][15:])
+plt.plot(scores['MAE_train'][1:])
 
+scores["MAE_train"]
 
 
 
@@ -32,12 +33,11 @@ img_name = os.path.join("./Data/images/image2000.jpg")
  
 image = io.imread(img_name)
 
-image = image[:480,:]
+#image = image[:480,:]
 
-mmap = image[480:580,10:160]
-
+mmap = image[520:580,56:116]
 plt.imshow(mmap)
-
+mmap.shape
 
 plt.imshow(image)
 

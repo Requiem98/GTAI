@@ -124,6 +124,13 @@ preprocess = T.Compose([
 ])
 
 
+test_preprocess = T.Compose([
+    T.ToPILImage(),
+    T.Resize((240,400)),
+    T.ToTensor(),
+])
+
+
 class GTADataset(Dataset):
 
     def __init__(self, csv_file, root_dir, transform=None, mmap=False, img_dir="images/"):
@@ -159,7 +166,7 @@ class GTADataset(Dataset):
             image = io.imread(im_name)
         
             if(self.mmap):
-                mmap = image[480:580,10:160]
+                mmap = image[520:580,56:116]
                 mmap = F.to_pil_image(mmap)
                 mmap = F.to_tensor(mmap)
                 mmaps.append(mmap)

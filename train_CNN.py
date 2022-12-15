@@ -23,7 +23,7 @@ if __name__ == '__main__':
     
         
     train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
-    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.preprocess)
+    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess)
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=256, 

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     
         
     train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
-    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.preprocess)
+    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess)
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=256, 
@@ -37,13 +37,14 @@ if __name__ == '__main__':
 
 
     nvidia = NVIDIA(device = device).to(device) #qui inserire modello da trainare
+    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00040.pth"))
     
     
     trainer = Trainer(nvidia, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
-
+    """
     trainer.train_model(train_dl,
                         max_epoch=45, 
                         steps_per_epoch=0,
@@ -53,14 +54,14 @@ if __name__ == '__main__':
                         log_step=1, 
                         ckp_save_step = 5,
                         ckp_epoch=0)
-
+    """
     print('Starting test...')
     _, _, o = trainer.test_model(test_dl)
     
     
     data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
-    a=10000
+    a=300
     plt.plot(bf.reverse_normalized_steering(o[1:a]))
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
     

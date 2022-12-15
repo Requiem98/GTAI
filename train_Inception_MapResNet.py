@@ -174,7 +174,7 @@ if __name__ == '__main__':
     
         
     train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess, mmap=True)
-    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.preprocess, mmap=True)
+    test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess, mmap=True)
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=32, 
@@ -189,13 +189,14 @@ if __name__ == '__main__':
 
 
     mapnet = Inception_MapResNet(device = device).to(device) #qui inserire modello da trainare
-    #cnn.load_state_dict(torch.load("./Data/models/CNN/checkpoint/00015.pth"))
+    mapnet.load_state_dict(torch.load("./Data/models/Inception_MapResNet/checkpoint/00005.pth"))
     
     
     trainer = Trainer(mapnet, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
+
 
     trainer.train_model(train_dl,
                         max_epoch=1, 
@@ -206,11 +207,11 @@ if __name__ == '__main__':
                         log_step=1, 
                         ckp_save_step = 5,
                         ckp_epoch=0)
-
+ 
     print('Starting test...')
     _, _, o = trainer.test_model(test_dl)
     
-    
+   
     data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
     a=10000
@@ -218,9 +219,18 @@ if __name__ == '__main__':
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
     
     
+   
+    inp = np.array(bf.reverse_normalized_steering(o))[1:]
+    targ = data["steeringAngle"].to_numpy()
+    
+    (np.abs(inp - targ)).mean()
+    np.sqrt(((inp - targ)**2).mean())
 
+    torch.nn.functional.l1_loss(torch.tensor(inp), torch.tensor(targ))
     
 
+    
+    
 #== Best Result ==
 #Total Test Loss:  0.0909 --- MAE:  7.8666
 
