@@ -218,14 +218,21 @@ class CNN(nn.Module):
     
     
     def loss(self, pred, target):
-        
-        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
-        
-        return torch.mean(weights * (pred - target) ** 2)
+        return torch.nn.functional.mse_loss(pred, target)
     
     def MeanAbsoluteError(self, pred, target):
-        return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+        return torch.nn.functional.l1_loss(pred, target)
+    
+"""
+def loss(self, pred, target):
+    
+    weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
+    
+    return torch.mean(weights * (pred - target) ** 2)
 
+def MeanAbsoluteError(self, pred, target):
+    return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+"""
 
         
 
@@ -277,16 +284,23 @@ class inception_resnet_v2_regr(nn.Module):
         return x
      
     
-    
     def loss(self, pred, target):
-        
-        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
-        
-        return torch.mean(weights * (pred - target) ** 2)
+        return torch.nn.functional.mse_loss(pred, target)
     
     def MeanAbsoluteError(self, pred, target):
-        return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+        return torch.nn.functional.l1_loss(pred, target)
     
+    
+"""
+def loss(self, pred, target):
+    
+    weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
+    
+    return torch.mean(weights * (pred - target) ** 2)
+
+def MeanAbsoluteError(self, pred, target):
+    return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+"""
     
     
 class Inception_MapResNet(nn.Module):
