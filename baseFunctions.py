@@ -121,12 +121,13 @@ preprocess = T.Compose([
 
 class GTADataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, img_dir="images/"):
+    def __init__(self, csv_file, root_dir, transform=None, mmap=False, img_dir="images/"):
 
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir
         self.img_dir = img_dir
         self.transform = transform
+        self.mmap = mmap
     
 
     def __len__(self):
@@ -142,12 +143,21 @@ class GTADataset(Dataset):
         if(isinstance(img_names, str)):
             img_names = [img_names]
             
+        if(self.mmap):
+            mmaps = list()
+            
             
         images = list()
         
         for im_name in img_names:
             
             image = io.imread(im_name)
+        
+            if(self.mmap):
+                mmap = image[480:580,10:160]
+                mmap = F.to_pil_image(mmap)
+                mmap = F.to_tensor(mmap)
+                mmaps.append(mmap)
         
             image = image[:480, :]
         
@@ -158,8 +168,13 @@ class GTADataset(Dataset):
         
         if(len(img_names)>1):
             images = [el.unsqueeze(0) for el in images]
+            if(self.mmaps):
+                mmaps = [el.unsqueeze(0) for el in mmaps]
             
         images = torch.cat(images)
+        
+        if(self.mmap):
+            mmaps = torch.cat(mmaps)
         
         statistics = self.statistics.iloc[idx, :3]
         statistics = np.array(statistics, dtype=np.float32)
@@ -167,8 +182,25 @@ class GTADataset(Dataset):
         statistics = torch.tensor(statistics, dtype=torch.float32)
     
 
+        if(self.mmap):
+            sample = {'img': images, 'mmap': mmaps, 'statistics': statistics}
+            return sample
             
             
         sample = {'img': images, 'statistics': statistics}
 
         return sample
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

@@ -288,3 +288,103 @@ class inception_resnet_v2_regr(nn.Module):
         return torch.nn.functional.l1_loss(pred.reshape(-1), target)
     
     
+    
+class Inception_MapResNet(nn.Module):
+
+    def __init__(self, device):
+
+        super(Inception_MapResNet, self).__init__()
+
+        self.device = device
+        
+        
+        #Image
+        self.inception = timm.create_model('inception_resnet_v2', pretrained=True)
+
+        self.avgPooling = nn.AvgPool2d((6,11))
+        
+        
+        
+        
+        
+        #MiniMap
+        self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
+        self.convlRelu1 = nn.LeakyReLU()
+        
+        self.conv2 = nn.Conv2d(24, 36, 5, 2, 0)
+        self.convlRelu2 = nn.LeakyReLU()
+        
+        self.conv3 = nn.Conv2d(36, 48, 5, 2, 0)
+        self.convlRelu3 = nn.LeakyReLU()
+        
+        
+        self.conv4 = nn.Conv2d(48, 64, 3, 1, 0)
+        self.convlRelu4 = nn.LeakyReLU()
+        
+        self.conv5 = nn.Conv2d(64, 64, 3, 1, 0)
+        self.convlRelu5 = nn.LeakyReLU()
+
+        self.flatten = nn.Flatten()
+        
+        
+
+        self.linear1 = nn.Linear(5376, 2048)
+        self.relu1 = nn.ReLU()
+        
+        self.linear2 = nn.Linear(2048, 1024)
+        self.relu2 = nn.ReLU()
+        
+        self.linear3 = nn.Linear(1024, 256)
+        self.relu3 = nn.ReLU()
+        
+        self.linear4 = nn.Linear(256, 64)
+        self.relu4 = nn.ReLU()
+        
+        self.linear5 = nn.Linear(64, 16)
+        self.relu5 = nn.ReLU()
+
+        self.linear6 = nn.Linear(16, 1) #steering angle
+
+
+
+
+
+    def forward(self, x_img, x_mmap):
+        x_inception = self.inception.forward_features(x_img)
+        
+        x_inception = self.avgPooling(x_inception).view(x_inception.shape[0], 1536)
+        
+        
+        x_CNN = self.convlRelu1(self.conv1(x_mmap))
+        x_CNN = self.convlRelu2(self.conv2(x_CNN))
+        x_CNN = self.convlRelu3(self.conv3(x_CNN))
+
+        x_CNN = self.convlRelu4(self.conv4(x_CNN))
+        x_CNN = self.convlRelu5(self.conv5(x_CNN))
+
+        x_CNN = self.flatten(x_CNN)
+        
+        x = torch.cat([x_inception,x_CNN], 1)
+        
+        x = self.relu1(self.linear1(x))
+        x = self.relu2(self.linear2(x))
+        x = self.relu3(self.linear3(x))
+        x = self.relu4(self.linear4(x))
+        x = self.relu5(self.linear5(x))
+        
+        x = self.linear6(x)
+
+        return x
+     
+    
+    
+    def loss(self, pred, target):
+        
+        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
+        
+        return torch.mean(weights * (pred - target) ** 2)
+    
+    def MeanAbsoluteError(self, pred, target):
+        return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+    
+    

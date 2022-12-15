@@ -46,7 +46,7 @@ if __name__ == '__main__':
                       score_file = SCORE_FILE)
 
     trainer.train_model(train_dl,
-                        max_epoch=35, 
+                        max_epoch=45, 
                         steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,

@@ -11,7 +11,6 @@ from torchvision.transforms import functional as F
 try:
     import pickle5 as pickle
 except:
-    print("pickle5 is not installed. Importing pickle instead")
     import pickle
 import PIL
 import os
