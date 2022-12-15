@@ -79,16 +79,22 @@ class SteeringSampler():
         self.weights = self.weights/np.sum(self.weights)
         
 
-
+"""
 def normalize_steering(x):
     x = x+40.5
     return x / 81
+"""
+def normalize_steering(x):
+    return x /40.5
 
-
+"""
 def reverse_normalized_steering(x):
     x = x*81
     return x - 40.5
+"""
 
+def reverse_normalized_steering(x):
+    return x *40.5
 
 
 def weight_fun(x, alpha=4):
@@ -113,7 +119,6 @@ preprocess = T.Compose([
     T.ToPILImage(),
     T.Resize((240,400)),
     T.ColorJitter(brightness=(0.5,2)),
-    T.RandomHorizontalFlip(p=0.5),
     T.RandomAffine(degrees = 0, translate=(0.1,0.1)),
     T.ToTensor(),
 ])

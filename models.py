@@ -379,12 +379,91 @@ class Inception_MapResNet(nn.Module):
     
     
     def loss(self, pred, target):
-        
-        weights = bf.weight_fun(bf.normalize_steering(torch.abs(bf.reverse_normalized_steering(target))))
-        
-        return torch.mean(weights * (pred - target) ** 2)
+        return torch.nn.functional.mse_loss(pred, target)
     
     def MeanAbsoluteError(self, pred, target):
-        return torch.nn.functional.l1_loss(pred.reshape(-1), target)
+        return torch.nn.functional.l1_loss(pred, target)
+    
+  
+
+class NVIDIA(nn.Module):
+
+    def __init__(self, device):
+
+        super(NVIDIA, self).__init__()
+
+        self.device = device
+
+        
+        self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
+        self.convlRelu1 = nn.ReLU()
+        self.batchNorm1 = nn.BatchNorm2d(24)
+        
+        self.conv2 = nn.Conv2d(24, 36, 5, 2, 0)
+        self.convlRelu2 = nn.ReLU()
+        self.batchNorm2 = nn.BatchNorm2d(36)
+        
+        self.conv3 = nn.Conv2d(36, 48, 5, 2, 0)
+        self.convlRelu3 = nn.ReLU()
+        self.batchNorm3 = nn.BatchNorm2d(48)
+        
+        
+        self.conv4 = nn.Conv2d(48, 64, 3, 1, 0)
+        self.convlRelu4 = nn.ReLU()
+        self.batchNorm4 = nn.BatchNorm2d(64)
+        
+        self.conv5 = nn.Conv2d(64, 64, 3, 1, 0)
+        self.convlRelu5 = nn.ReLU()
+        self.batchNorm5 = nn.BatchNorm2d(64)
+
+        self.flatten = nn.Flatten()
+
+        self.linear1 = nn.Linear(63296, 1164)
+        self.lRelu1 = nn.ReLU()
+        self.batchNorm_linear1 = nn.BatchNorm1d(1164)
+
+        self.linear2 = nn.Linear(1164, 200)
+        self.lRelu2 = nn.ReLU()
+        self.batchNorm_linear2 = nn.BatchNorm1d(200)
+
+        self.linear3 = nn.Linear(200, 50)
+        self.lRelu3 = nn.ReLU()
+        self.batchNorm_linear3 = nn.BatchNorm1d(50)
+        
+        self.linear4 = nn.Linear(50, 10)
+        self.lRelu4 = nn.ReLU()
+        self.batchNorm_linear4 = nn.BatchNorm1d(10)
+
+        self.linear5 = nn.Linear(10, 1) #steering angle
+
+
+
+
+
+    def forward(self, x):
+        x = self.batchNorm1(self.convlRelu1(self.conv1(x)))
+        x = self.batchNorm2(self.convlRelu2(self.conv2(x)))
+        x = self.batchNorm3(self.convlRelu3(self.conv3(x)))
+
+        x = self.batchNorm4(self.convlRelu4(self.conv4(x)))
+        x = self.batchNorm5(self.convlRelu5(self.conv5(x)))
+
+        x = self.flatten(x)
+
+        x = self.batchNorm_linear1(self.lRelu1(self.linear1(x)))
+        x = self.batchNorm_linear2(self.lRelu2(self.linear2(x)))
+        x = self.batchNorm_linear3(self.lRelu3(self.linear3(x)))
+        x = self.batchNorm_linear4(self.lRelu4(self.linear4(x)))
+        
+        x = self.linear5(x)
+
+        return x
+    
+    
+    def loss(self, pred, target):
+        return torch.nn.functional.mse_loss(pred, target)
+    
+    def MeanAbsoluteError(self, pred, target):
+        return torch.nn.functional.l1_loss(pred, target)
     
     

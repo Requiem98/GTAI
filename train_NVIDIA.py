@@ -1,6 +1,6 @@
 from libraries import *
 import baseFunctions as bf
-from models import CNN, Trainer
+from models import NVIDIA, Trainer
 
 
 if __name__ == '__main__':
@@ -17,8 +17,8 @@ if __name__ == '__main__':
     
     #Path per i salvataggi dei checkpoints
     #SINTASSI: ./Data/models/NOME_MODELLO/etc...
-    CKP_DIR = "./Data/models/CNN/checkpoint/"
-    SCORE_DIR = "./Data/models/CNN/scores/"
+    CKP_DIR = "./Data/models/NVIDIA/checkpoint/"
+    SCORE_DIR = "./Data/models/NVIDIA/scores/"
     SCORE_FILE = 'history_score.pkl'
     
         
@@ -36,11 +36,10 @@ if __name__ == '__main__':
                             num_workers=10)
 
 
-    cnn = CNN(device = device).to(device) #qui inserire modello da trainare
-    cnn.load_state_dict(torch.load("./Data/models/CNN/checkpoint/00065.pth"))
+    nvidia = NVIDIA(device = device).to(device) #qui inserire modello da trainare
     
     
-    trainer = Trainer(cnn, 
+    trainer = Trainer(nvidia, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
