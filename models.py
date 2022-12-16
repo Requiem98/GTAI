@@ -127,6 +127,7 @@ class Trainer():
         
         test_tot_loss=0
         mae=0
+        rmse=0
         
         preds = np.array([0])
         
@@ -142,14 +143,15 @@ class Trainer():
                 loss = self.model.loss(pred.reshape(-1), gt_steeringAngle)
                 
                 
-                test_tot_loss += loss * batch['statistics'].shape[0]
-                mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)) * batch['statistics'].shape[0]
+                test_tot_loss += loss
+                mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle))
+                rmse = torch.sqrt(torch.nn.functional.mse_loss(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)))
                 
                 preds = np.concatenate([preds, pred.cpu().numpy().flatten()])
                 
-        print('Total Test Loss: %7.4f --- MAE: %7.4f' % (test_tot_loss/len(test_data), mae/len(test_data)))
+        print('Total Test Loss: %7.4f --- MAE: %7.4f --- --- RMSE: %7.4f' % (test_tot_loss/len(test_data), mae/len(test_data), rmse/len(test_data)))
                 
-        return test_tot_loss/len(test_data), mae/len(test_data), preds
+        return test_tot_loss/len(test_data), mae/len(test_data), rmse/len(test_data), preds
 
         
         

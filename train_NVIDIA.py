@@ -27,6 +27,7 @@ if __name__ == '__main__':
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=256, 
+                            #shuffle=True,
                             sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
                             num_workers=10)
 
@@ -37,7 +38,7 @@ if __name__ == '__main__':
 
 
     nvidia = NVIDIA(device = device).to(device) #qui inserire modello da trainare
-    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00040.pth"))
+    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"))
     
     
     trainer = Trainer(nvidia, 
@@ -46,27 +47,35 @@ if __name__ == '__main__':
                       score_file = SCORE_FILE)
     """
     trainer.train_model(train_dl,
-                        max_epoch=45, 
+                        max_epoch=100, 
                         steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=0)
+                        ckp_epoch=40)
     """
     print('Starting test...')
-    _, _, o = trainer.test_model(test_dl)
+    test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     
     
     data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
-    a=300
+    a=1000
     plt.plot(bf.reverse_normalized_steering(o[1:a]))
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
     
     
-
+    """
+    results = pd.DataFrame(np.array([["NVIDIA"], [test_tot_loss.cpu().numpy()], [mae.cpu().numpy()], [rmse.cpu().numpy()]]).reshape(-1,4), columns=["model_name","test_tot_loss", "mae", "rmse"])
+    
+    results_df = pd.read_csv("./Data/results.csv", index_col=0)
+    
+    results_df = pd.concat([results_df, results])
+    
+    results_df.to_csv("./Data/results.csv")
+    """
     
 
 #== Best Result ==
