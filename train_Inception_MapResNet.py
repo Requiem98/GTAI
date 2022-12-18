@@ -178,8 +178,7 @@ if __name__ == '__main__':
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=32, 
-                            shuffle=True,
-                            #sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
+                            sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     

@@ -21,10 +21,11 @@ if __name__ == '__main__':
     
     train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess)
     test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess)
+
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=32, 
-                            sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
+                            sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 
  
     inception = inception_resnet_v2_regr(device = device).to(device)
-    inception.load_state_dict(torch.load("./Data/models/Inception/checkpoint/00008.pth"))
+    #inception.load_state_dict(torch.load("./Data/models/Inception/checkpoint/00008.pth"), strict=False)
     
     
     trainer = Trainer(inception, 
@@ -44,17 +45,17 @@ if __name__ == '__main__':
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
     
-    """
+    
     trainer.train_model(train_dl,
-                        max_epoch=10, 
+                        max_epoch=20, 
                         steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 2,
-                        ckp_epoch=0)
-    """
+                        ckp_epoch=6)
+    
     print('Starting test...')
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     

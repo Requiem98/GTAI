@@ -50,10 +50,12 @@ def create_train_test_dataframe(data, group_n=1, test_size=0.2, save_dir = "./Da
 
 
 
-class SteeringSampler():
-    def __init__(self, path_to_csv):
+class SteeringSampler(Sampler):
+    def __init__(self, data_source):
         
-        self.data = pd.read_csv(path_to_csv, index_col=0)
+        super().__init__(data_source=data_source)
+        
+        self.data = data_source.statistics
         self.weights = np.abs(self.data["steeringAngle"].to_numpy()) + 1e-6
         self.weights = self.weights/np.sum(self.weights)
         self.indexes = np.arange(len(self.data))
@@ -62,12 +64,14 @@ class SteeringSampler():
         return self
     
     def __next__(self):
+        warnings.filterwarnings("error")
         try:
             idx = np.random.choice(self.indexes, p=self.weights, size=1, replace=False)
             self.weights[idx] = 0.0
             self.weights = np.true_divide(self.weights,np.sum(self.weights))
         except:
             idx = np.random.choice(self.indexes, size=1, replace=False)
+        warnings.resetwarnings()
       
         return idx[0]
     
@@ -133,7 +137,7 @@ test_preprocess = T.Compose([
 
 class GTADataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, mmap=False, img_dir="images/"):
+    def __init__(self, csv_file, root_dir, transform=None, mmap=False, img_dir=""):
 
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir

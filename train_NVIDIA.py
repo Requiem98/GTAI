@@ -27,13 +27,12 @@ if __name__ == '__main__':
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=256, 
-                            #shuffle=True,
-                            sampler=bf.SteeringSampler("./Data/data_train_norm.csv"), 
+                            sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     
     test_dl = DataLoader(test_dataset, 
-                            batch_size=256, 
+                            batch_size=256,
                             num_workers=10)
 
 
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     
     
-    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
+    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_sequential.csv', index_col=0)
     
     a=1000
     plt.plot(bf.reverse_normalized_steering(o[1:a]))

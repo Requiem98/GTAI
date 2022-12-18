@@ -11,7 +11,7 @@ class Trainer():
         self.score_dir= score_dir
         self.score_file = score_file
         
-    def train_model(self, data, max_epoch=40, steps_per_epoch=0, lr = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_epoch=0):
+    def train_model(self, data, max_epoch=40, steps_per_epoch=0, lr = 1e-3, lr_cap = 1e-3, gamma = 0.5, weight_decay = 0, ckp_save_step=20, log_step=5, ckp_epoch=0):
 
        # Argument for the training
        #max_epoch          # Total number of epoch
@@ -91,7 +91,7 @@ class Trainer():
             
             self.data.sampler.reset_sampler()
                 
-            if(scheduler.get_last_lr()[0] > 1e-4):
+            if(scheduler.get_last_lr()[0] > lr_cap):
                 scheduler.step()
 
 
@@ -148,6 +148,7 @@ class Trainer():
                 rmse = torch.sqrt(torch.nn.functional.mse_loss(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)))
                 
                 preds = np.concatenate([preds, pred.cpu().numpy().flatten()])
+                
                 
         print('Total Test Loss: %7.4f --- MAE: %7.4f --- --- RMSE: %7.4f' % (test_tot_loss/len(test_data), mae/len(test_data), rmse/len(test_data)))
                 
@@ -255,15 +256,19 @@ class inception_resnet_v2_regr(nn.Module):
 
         self.linear1 = nn.Linear(1536, 1024)
         self.relu1 = nn.ReLU()
+        self.batchNorm_linear1 = nn.BatchNorm1d(1024)
         
         self.linear2 = nn.Linear(1024, 256)
         self.relu2 = nn.ReLU()
+        self.batchNorm_linear2 = nn.BatchNorm1d(256)
         
         self.linear3 = nn.Linear(256, 64)
         self.relu3 = nn.ReLU()
+        self.batchNorm_linear3 = nn.BatchNorm1d(64)
         
         self.linear4 = nn.Linear(64, 16)
         self.relu4 = nn.ReLU()
+        self.batchNorm_linear4 = nn.BatchNorm1d(16)
 
         self.linear5 = nn.Linear(16, 1) #steering angle
 
@@ -276,10 +281,10 @@ class inception_resnet_v2_regr(nn.Module):
         
         x = self.avgPooling(x).view(x.shape[0], 1536)
         
-        x = self.relu1(self.linear1(x))
-        x = self.relu2(self.linear2(x))
-        x = self.relu3(self.linear3(x))
-        x = self.relu4(self.linear4(x))
+        x = self.batchNorm_linear1(self.relu1(self.linear1(x)))
+        x = self.batchNorm_linear2(self.relu2(self.linear2(x)))
+        x = self.batchNorm_linear3(self.relu3(self.linear3(x)))
+        x = self.batchNorm_linear4(self.relu4(self.linear4(x)))
         
         x = self.linear5(x)
 
@@ -324,42 +329,47 @@ class Inception_MapResNet(nn.Module):
         
         
         #MiniMap
-        self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
-        self.convlRelu1 = nn.LeakyReLU()
+        self.conv1 = nn.Conv2d(3, 24, 3, 2, 0)
+        self.convlRelu1 = nn.ReLU()
+        self.batchNorm1 = nn.BatchNorm2d(24)
         
-        self.conv2 = nn.Conv2d(24, 36, 5, 2, 0)
-        self.convlRelu2 = nn.LeakyReLU()
+        self.conv2 = nn.Conv2d(24, 36, 3, 2, 0)
+        self.convlRelu2 = nn.ReLU()
+        self.batchNorm2 = nn.BatchNorm2d(36)
         
-        self.conv3 = nn.Conv2d(36, 48, 5, 2, 0)
-        self.convlRelu3 = nn.LeakyReLU()
+        self.conv3 = nn.Conv2d(36, 48, 3, 2, 0)
+        self.convlRelu3 = nn.ReLU()
+        self.batchNorm3 = nn.BatchNorm2d(48)
         
         
-        self.conv4 = nn.Conv2d(48, 64, 3, 1, 0)
-        self.convlRelu4 = nn.LeakyReLU()
+        self.conv4 = nn.Conv2d(48, 64, 2, 1, 0)
+        self.convlRelu4 = nn.ReLU()
+        self.batchNorm4 = nn.BatchNorm2d(64)
         
         self.conv5 = nn.Conv2d(64, 64, 3, 1, 0)
-        self.convlRelu5 = nn.LeakyReLU()
+        self.convlRelu5 = nn.ReLU()
+        self.batchNorm5 = nn.BatchNorm2d(64)
 
         self.flatten = nn.Flatten()
         
         
-
-        self.linear1 = nn.Linear(5376, 2048)
+        self.linear1 = nn.Linear(2112, 1164)
         self.relu1 = nn.ReLU()
+        self.batchNorm_linear1 = nn.BatchNorm1d(1164)
         
-        self.linear2 = nn.Linear(2048, 1024)
+        self.linear2 = nn.Linear(1164, 200)
         self.relu2 = nn.ReLU()
+        self.batchNorm_linear2 = nn.BatchNorm1d(200)
         
-        self.linear3 = nn.Linear(1024, 256)
+        self.linear3 = nn.Linear(200, 50)
         self.relu3 = nn.ReLU()
+        self.batchNorm_linear3 = nn.BatchNorm1d(50)
         
-        self.linear4 = nn.Linear(256, 64)
+        self.linear4 = nn.Linear(50, 10)
         self.relu4 = nn.ReLU()
-        
-        self.linear5 = nn.Linear(64, 16)
-        self.relu5 = nn.ReLU()
+        self.batchNorm_linear4 = nn.BatchNorm1d(10)
 
-        self.linear6 = nn.Linear(16, 1) #steering angle
+        self.linear5 = nn.Linear(10, 1) #steering angle
 
 
 
@@ -371,24 +381,23 @@ class Inception_MapResNet(nn.Module):
         x_inception = self.avgPooling(x_inception).view(x_inception.shape[0], 1536)
         
         
-        x_CNN = self.convlRelu1(self.conv1(x_mmap))
-        x_CNN = self.convlRelu2(self.conv2(x_CNN))
-        x_CNN = self.convlRelu3(self.conv3(x_CNN))
+        x_CNN = self.batchNorm1(self.convlRelu1(self.conv1(x_mmap)))
+        x_CNN = self.batchNorm2(self.convlRelu2(self.conv2(x_CNN)))
+        x_CNN = self.batchNorm3(self.convlRelu3(self.conv3(x_CNN)))
 
-        x_CNN = self.convlRelu4(self.conv4(x_CNN))
-        x_CNN = self.convlRelu5(self.conv5(x_CNN))
+        x_CNN = self.batchNorm4(self.convlRelu4(self.conv4(x_CNN)))
+        x_CNN = self.batchNorm5(self.convlRelu5(self.conv5(x_CNN)))
 
         x_CNN = self.flatten(x_CNN)
         
         x = torch.cat([x_inception,x_CNN], 1)
         
-        x = self.relu1(self.linear1(x))
-        x = self.relu2(self.linear2(x))
-        x = self.relu3(self.linear3(x))
-        x = self.relu4(self.linear4(x))
-        x = self.relu5(self.linear5(x))
+        x = self.batchNorm_linear1(self.relu1(self.linear1(x)))
+        x = self.batchNorm_linear2(self.relu2(self.linear2(x)))
+        x = self.batchNorm_linear3(self.relu3(self.linear3(x)))
+        x = self.batchNorm_linear4(self.relu4(self.linear4(x)))
         
-        x = self.linear6(x)
+        x = self.linear5(x)
 
         return x
      

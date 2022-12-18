@@ -1,5 +1,6 @@
 from libraries import *
 import baseFunctions as bf
+from models import Inception_MapResNet
 CKP_DIR = "./Data/models/Inception/checkpoint/"
 
 
@@ -11,7 +12,7 @@ DATA_ROOT_DIR + "images/" + data.iloc[[1,2,3,4], 3]
 
 
 #Check loss history
-scores = bf.read_object("./Data/models/Inception/scores/00008_history_score.pkl")
+scores = bf.read_object("./Data/models/CNN/scores/00085_history_score.pkl")
 
 plt.plot(scores['loss_tot_train'][1:])
 
@@ -27,6 +28,8 @@ inception = timm.create_model('inception_resnet_v2', pretrained=False)
 state_dict_backbone = bf.get_backbone_state_dict(torch.load(CKP_DIR + f'{(21):05d}.pth'), "inception")
 
 inception.load_state_dict(state_dict_backbone, strict=False)
+
+
 
 
 img_name = os.path.join("./Data/images/image2000.jpg")
@@ -46,7 +49,31 @@ image2 = bf.preprocess(image)
 plt.imshow(image2.permute(1,2,0))
 
 
+        
+train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess, mmap=True)
 
+train_dl = DataLoader(train_dataset, 
+                        batch_size=2,
+                        sampler=bf.SteeringSampler(train_dataset), 
+                        num_workers=0)
+
+
+for b in tqdm(train_dl, total=len(train_dl)):
+    1+1
+
+
+s = bf.SteeringSampler(train_dataset)
+
+for i in tqdm(s):
+    pass
+
+s2 = SubsetRandomSampler(list(BatchSampler(SequentialSampler(train_dataset), 2, drop_last=True)))
+
+
+
+mapnet = Inception_MapResNet(device).to(device)
+
+mapnet(b["img"].to(device), b["mmap"].to(device))
 
 
 
