@@ -443,23 +443,23 @@ class NVIDIA(nn.Module):
 
         self.flatten = nn.Flatten()
 
-        self.linear1 = nn.Linear(63296, 1164)
+        self.linear_1 = nn.Linear(27520, 1164)
         self.lRelu1 = nn.ReLU()
         self.batchNorm_linear1 = nn.BatchNorm1d(1164)
 
-        self.linear2 = nn.Linear(1164, 200)
+        self.linear_2 = nn.Linear(1164, 200)
         self.lRelu2 = nn.ReLU()
         self.batchNorm_linear2 = nn.BatchNorm1d(200)
 
-        self.linear3 = nn.Linear(200, 50)
+        self.linear_3 = nn.Linear(200, 50)
         self.lRelu3 = nn.ReLU()
         self.batchNorm_linear3 = nn.BatchNorm1d(50)
         
-        self.linear4 = nn.Linear(50, 10)
+        self.linear_4 = nn.Linear(50, 10)
         self.lRelu4 = nn.ReLU()
         self.batchNorm_linear4 = nn.BatchNorm1d(10)
 
-        self.linear5 = nn.Linear(10, 1) #steering angle
+        self.linear_5 = nn.Linear(10, 1) #steering angle
 
 
 
@@ -475,14 +475,141 @@ class NVIDIA(nn.Module):
 
         x = self.flatten(x)
 
-        x = self.batchNorm_linear1(self.lRelu1(self.linear1(x)))
-        x = self.batchNorm_linear2(self.lRelu2(self.linear2(x)))
-        x = self.batchNorm_linear3(self.lRelu3(self.linear3(x)))
-        x = self.batchNorm_linear4(self.lRelu4(self.linear4(x)))
+        x = self.batchNorm_linear1(self.lRelu1(self.linear_1(x)))
+        x = self.batchNorm_linear2(self.lRelu2(self.linear_2(x)))
+        x = self.batchNorm_linear3(self.lRelu3(self.linear_3(x)))
+        x = self.batchNorm_linear4(self.lRelu4(self.linear_4(x)))
         
-        x = self.linear5(x)
+        x = self.linear_5(x)
 
         return x
+    
+    
+    def loss(self, pred, target):
+        return torch.nn.functional.mse_loss(pred, target)
+    
+    def MeanAbsoluteError(self, pred, target):
+        return torch.nn.functional.l1_loss(pred, target)
+    
+
+
+
+    
+class MapNet(nn.Module):
+
+    def __init__(self, device):
+
+        super(MapNet, self).__init__()
+
+        self.device = device
+        
+        
+        #Image
+        self.conv1 = nn.Conv2d(3, 24, 5, 2, 0)
+        self.convlRelu1 = nn.ReLU()
+        self.batchNorm1 = nn.BatchNorm2d(24)
+        
+        self.conv2 = nn.Conv2d(24, 36, 5, 2, 0)
+        self.convlRelu2 = nn.ReLU()
+        self.batchNorm2 = nn.BatchNorm2d(36)
+        
+        self.conv3 = nn.Conv2d(36, 48, 5, 2, 0)
+        self.convlRelu3 = nn.ReLU()
+        self.batchNorm3 = nn.BatchNorm2d(48)
+        
+        
+        self.conv4 = nn.Conv2d(48, 64, 3, 1, 0)
+        self.convlRelu4 = nn.ReLU()
+        self.batchNorm4 = nn.BatchNorm2d(64)
+        
+        self.conv5 = nn.Conv2d(64, 64, 3, 1, 0)
+        self.convlRelu5 = nn.ReLU()
+        self.batchNorm5 = nn.BatchNorm2d(64)
+
+        
+        
+        
+        
+        
+        #MiniMap
+        self.conv1_map = nn.Conv2d(3, 24, 2, 2, 0)
+        self.convlRelu1_map = nn.ReLU()
+        self.batchNorm1_map = nn.BatchNorm2d(24)
+        
+        self.conv2_map = nn.Conv2d(24, 36, 2, 2, 0)
+        self.convlRelu2_map = nn.ReLU()
+        self.batchNorm2_map = nn.BatchNorm2d(36)
+        
+        
+        self.conv3_map = nn.Conv2d(36, 48, 2, 1, 0)
+        self.convlRelu3_map = nn.ReLU()
+        self.batchNorm3_map = nn.BatchNorm2d(48)
+        
+        self.conv4_map = nn.Conv2d(48, 64, 2, 1, 0)
+        self.convlRelu4_map = nn.ReLU()
+        self.batchNorm4_map = nn.BatchNorm2d(64)
+        
+        self.conv5_map = nn.Conv2d(64, 128, 2, 1, 0)
+        self.convlRelu5_map = nn.ReLU()
+        self.batchNorm5_map = nn.BatchNorm2d(128)
+
+        
+        self.flatten = nn.Flatten()
+        
+        
+        self.linear_1 = nn.Linear(81728, 1164)
+        self.relu1 = nn.ReLU()
+        self.batchNorm_linear1 = nn.BatchNorm1d(1164)
+        
+        self.linear_2 = nn.Linear(1164, 200)
+        self.relu2 = nn.ReLU()
+        self.batchNorm_linear2 = nn.BatchNorm1d(200)
+        
+        self.linear_3 = nn.Linear(200, 50)
+        self.relu3 = nn.ReLU()
+        self.batchNorm_linear3 = nn.BatchNorm1d(50)
+        
+        self.linear_4 = nn.Linear(50, 10)
+        self.relu4 = nn.ReLU()
+        self.batchNorm_linear4 = nn.BatchNorm1d(10)
+
+        self.linear_5 = nn.Linear(10, 1) #steering angle
+
+
+
+
+
+    def forward(self, x_img, x_mmap):
+
+        x_img = self.batchNorm1(self.convlRelu1(self.conv1(x_img)))
+        x_img = self.batchNorm2(self.convlRelu2(self.conv2(x_img)))
+        x_img = self.batchNorm3(self.convlRelu3(self.conv3(x_img)))
+
+        x_img = self.batchNorm4(self.convlRelu4(self.conv4(x_img)))
+        x_img = self.batchNorm5(self.convlRelu5(self.conv5(x_img)))
+        
+        x_img = self.flatten(x_img)
+        
+        x_mmap = self.batchNorm1_map(self.convlRelu1_map(self.conv1_map(x_mmap)))
+        x_mmap = self.batchNorm2_map(self.convlRelu2_map(self.conv2_map(x_mmap)))
+        x_mmap = self.batchNorm3_map(self.convlRelu3_map(self.conv3_map(x_mmap)))
+
+        x_mmap = self.batchNorm4_map(self.convlRelu4_map(self.conv4_map(x_mmap)))
+        x_mmap = self.batchNorm5_map(self.convlRelu5_map(self.conv5_map(x_mmap)))
+
+        x_mmap = self.flatten(x_mmap)
+        
+        x = torch.cat([x_img,x_mmap], 1)
+        
+        x = self.batchNorm_linear1(self.relu1(self.linear_1(x)))
+        x = self.batchNorm_linear2(self.relu2(self.linear_2(x)))
+        x = self.batchNorm_linear3(self.relu3(self.linear_3(x)))
+        x = self.batchNorm_linear4(self.relu4(self.linear_4(x)))
+        
+        x = self.linear_5(x)
+
+        return x
+     
     
     
     def loss(self, pred, target):

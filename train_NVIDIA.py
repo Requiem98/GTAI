@@ -37,14 +37,14 @@ if __name__ == '__main__':
 
 
     nvidia = NVIDIA(device = device).to(device) #qui inserire modello da trainare
-    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"))
+    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"), strict=False)
     
     
     trainer = Trainer(nvidia, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
-    """
+    
     trainer.train_model(train_dl,
                         max_epoch=100, 
                         steps_per_epoch=0,
@@ -53,8 +53,8 @@ if __name__ == '__main__':
                         weight_decay=1e-6,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=40)
-    """
+                        ckp_epoch=0)
+    
     print('Starting test...')
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     

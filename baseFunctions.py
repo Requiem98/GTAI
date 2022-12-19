@@ -121,7 +121,7 @@ def get_backbone_state_dict(sd, backbone_name):
 
 preprocess = T.Compose([
     T.ToPILImage(),
-    T.Resize((240,400)),
+    T.Resize((140,400)),
     T.ColorJitter(brightness=(0.5,2)),
     T.RandomAffine(degrees = 0, translate=(0.1,0.1)),
     T.ToTensor(),
@@ -130,7 +130,7 @@ preprocess = T.Compose([
 
 test_preprocess = T.Compose([
     T.ToPILImage(),
-    T.Resize((240,400)),
+    T.Resize((140,400)),
     T.ToTensor(),
 ])
 
@@ -175,7 +175,7 @@ class GTADataset(Dataset):
                 mmap = F.to_tensor(mmap)
                 mmaps.append(mmap)
         
-            image = image[:480, :]
+            image = image[200:480, :]
         
             if self.transform:
                 image = self.transform(image)

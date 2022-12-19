@@ -1,6 +1,6 @@
 from libraries import *
 import baseFunctions as bf
-from models import Inception_MapResNet
+from models import MapNet
 CKP_DIR = "./Data/models/Inception/checkpoint/"
 
 
@@ -36,13 +36,15 @@ img_name = os.path.join("./Data/images/image2000.jpg")
  
 image = io.imread(img_name)
 
-#image = image[:480,:]
+image = image[200:480,:]
 
 mmap = image[520:580,56:116]
 plt.imshow(mmap)
 mmap.shape
 
 plt.imshow(image)
+
+image.shape
 
 image2 = bf.preprocess(image)
 
@@ -59,21 +61,26 @@ train_dl = DataLoader(train_dataset,
 
 
 for b in tqdm(train_dl, total=len(train_dl)):
-    1+1
-
-
-s = bf.SteeringSampler(train_dataset)
-
-for i in tqdm(s):
-    pass
-
-s2 = SubsetRandomSampler(list(BatchSampler(SequentialSampler(train_dataset), 2, drop_last=True)))
+    break
 
 
 
-mapnet = Inception_MapResNet(device).to(device)
+mapnet = MapNet(device).to(device)
 
 mapnet(b["img"].to(device), b["mmap"].to(device))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
