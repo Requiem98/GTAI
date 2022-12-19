@@ -252,7 +252,7 @@ class inception_resnet_v2_regr(nn.Module):
         self.inception = timm.create_model('inception_resnet_v2', pretrained=True)
 
 
-        self.avgPooling = nn.AvgPool2d((6,11))    
+        self.avgPooling = nn.AvgPool2d((3,11))    
 
         self.linear1 = nn.Linear(1536, 1024)
         self.relu1 = nn.ReLU()
