@@ -557,7 +557,7 @@ class MapNet(nn.Module):
         self.flatten = nn.Flatten()
         
         
-        self.linear1 = nn.Linear(81728, 1164)
+        self.linear1 = nn.Linear(45952, 1164)
         self.relu1 = nn.ReLU()
         self.batchNorm_linear1 = nn.BatchNorm1d(1164)
         
