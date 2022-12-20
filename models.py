@@ -557,23 +557,23 @@ class MapNet(nn.Module):
         self.flatten = nn.Flatten()
         
         
-        self.linear_1 = nn.Linear(81728, 1164)
+        self.linear1 = nn.Linear(81728, 1164)
         self.relu1 = nn.ReLU()
         self.batchNorm_linear1 = nn.BatchNorm1d(1164)
         
-        self.linear_2 = nn.Linear(1164, 200)
+        self.linear2 = nn.Linear(1164, 200)
         self.relu2 = nn.ReLU()
         self.batchNorm_linear2 = nn.BatchNorm1d(200)
         
-        self.linear_3 = nn.Linear(200, 50)
+        self.linear3 = nn.Linear(200, 50)
         self.relu3 = nn.ReLU()
         self.batchNorm_linear3 = nn.BatchNorm1d(50)
         
-        self.linear_4 = nn.Linear(50, 10)
+        self.linear4 = nn.Linear(50, 10)
         self.relu4 = nn.ReLU()
         self.batchNorm_linear4 = nn.BatchNorm1d(10)
 
-        self.linear_5 = nn.Linear(10, 1) #steering angle
+        self.linear5 = nn.Linear(10, 1) #steering angle
 
 
 
@@ -601,12 +601,12 @@ class MapNet(nn.Module):
         
         x = torch.cat([x_img,x_mmap], 1)
         
-        x = self.batchNorm_linear1(self.relu1(self.linear_1(x)))
-        x = self.batchNorm_linear2(self.relu2(self.linear_2(x)))
-        x = self.batchNorm_linear3(self.relu3(self.linear_3(x)))
-        x = self.batchNorm_linear4(self.relu4(self.linear_4(x)))
+        x = self.batchNorm_linear1(self.relu1(self.linear1(x)))
+        x = self.batchNorm_linear2(self.relu2(self.linear2(x)))
+        x = self.batchNorm_linear3(self.relu3(self.linear3(x)))
+        x = self.batchNorm_linear4(self.relu4(self.linear4(x)))
         
-        x = self.linear_5(x)
+        x = self.linear5(x)
 
         return x
      
