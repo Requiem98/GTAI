@@ -199,8 +199,8 @@ if __name__ == '__main__':
 
     
     trainer.train_model(train_dl,
-                        max_epoch=2, 
-                        steps_per_epoch=1,
+                        max_epoch=100, 
+                        steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,
                         weight_decay=0,
