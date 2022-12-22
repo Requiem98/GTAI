@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from deepgtav.messages import Start, Stop, Scenario, Commands, frame2numpy
+from deepgtav.messages import Start, Stop, Scenario, Commands, frame2numpy, Dataset
 from deepgtav.client import Client
 
 import argparse
@@ -27,13 +27,13 @@ if __name__ == '__main__':
     
     # We set the scenario to be in manual driving, and everything else random (time, weather and location). 
     # See deepgtav/messages.py to see what options are supported
-    scenario = Scenario(drivingMode=-1) #manual driving
+    scenario = Scenario(drivingMode=[1, 10]) #manual driving
     
     # Send the Start request to DeepGTAV. Dataset is set as default, we only receive frames at 10Hz (320, 160)
-    client.sendMessage(Start(scenario=scenario))
+    client.sendMessage(Start(scenario=scenario, dataset=Dataset(steering=True, location=True, yawRate=True, throttle=True, brake=True, speed=True)))
     
     # Dummy agent
-    model = Model()
+    #model = Model()
 
     # Start listening for messages coming from DeepGTAV. We do it for 80 hours
     stoptime = time.time() + 80*3600
@@ -41,15 +41,22 @@ if __name__ == '__main__':
         try:
             # We receive a message as a Python dictionary
             message = client.recvMessage()  
-                
-            # The frame is a numpy array that can we pass through a CNN for example     
-            image = frame2numpy(message['frame'], (320,160))
-            commands = model.run(image)
-            # We send the commands predicted by the agent back to DeepGTAV to control the vehicle
-            client.sendMessage(Commands(commands[0], commands[1], commands[2]))
-        except KeyboardInterrupt:
-            break
             
+            #print(message["steering"], message["steeringAngle"], message['location'])
+            #print(message["throttle"], message["brake"], message["speed"])
+            # The frame is a numpy array that can we pass through a CNN for example     
+            #image = frame2numpy(message['frame'], (320,160))
+            #commands = model.run(image)
+            # We send the commands predicted by the agent back to DeepGTAV to control the vehicle
+            #client.sendMessage(Commands(commands[0], commands[1], commands[2]))
+        except KeyboardInterrupt:
+            print(message)
+            i = input('Paused. Press p to continue and q to exit... ')
+            if i == "p":
+                continue
+            elif i == "q":
+                break
+
     # We tell DeepGTAV to stop
-    client.sendMessage(Stop())
-    client.close()
+    #client.sendMessage(Stop())
+    #client.close()

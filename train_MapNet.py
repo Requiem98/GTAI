@@ -128,6 +128,7 @@ class Trainer():
         
         test_tot_loss=0
         mae=0
+        rmse=0
         
         preds = np.array([0])
         
@@ -143,14 +144,15 @@ class Trainer():
                 loss = self.model.loss(pred.reshape(-1), gt_steeringAngle)
                 
                 
-                test_tot_loss += loss * batch['statistics'].shape[0]
-                mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)) * batch['statistics'].shape[0]
+                test_tot_loss += loss
+                mae += self.model.MeanAbsoluteError(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle))
+                rmse = torch.sqrt(torch.nn.functional.mse_loss(bf.reverse_normalized_steering(pred.reshape(-1)), bf.reverse_normalized_steering(gt_steeringAngle)))
                 
                 preds = np.concatenate([preds, pred.cpu().numpy().flatten()])
                 
         print('Total Test Loss: %7.4f --- MAE: %7.4f' % (test_tot_loss/len(test_data), mae/len(test_data)))
                 
-        return test_tot_loss/len(test_data), mae/len(test_data), preds
+        return test_tot_loss/len(test_data), mae/len(test_data), rmse/len(test_data), preds
 
 
 
@@ -177,18 +179,17 @@ if __name__ == '__main__':
     test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess, mmap=True)
     
     train_dl = DataLoader(train_dataset, 
-                            batch_size=256, 
+                            batch_size=512, 
                             sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     
     test_dl = DataLoader(test_dataset, 
-                            batch_size=256, 
+                            batch_size=512, 
                             num_workers=10)
 
 
     mapnet = MapNet(device = device).to(device) #qui inserire modello da trainare
-    mapnet.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"), strict=False)
     
     
     trainer = Trainer(mapnet, 
@@ -196,24 +197,24 @@ if __name__ == '__main__':
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
 
-
+    
     trainer.train_model(train_dl,
-                        max_epoch=50, 
-                        steps_per_epoch=0,
+                        max_epoch=2, 
+                        steps_per_epoch=1,
                         lr=0.01,
                         gamma = 0.8,
                         weight_decay=0,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=0)
- 
+                        ckp_epoch=15)
+    
     print('Starting test...')
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     
    
     data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
-    a=10000
+    a=100
     plt.plot(bf.reverse_normalized_steering(o[1:a]))
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
     

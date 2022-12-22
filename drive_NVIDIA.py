@@ -38,15 +38,18 @@ if __name__ == '__main__':
     
     # We set the scenario to be in manual driving, and everything else random (time, weather and location). 
     # See deepgtav/messages.py to see what options are supported
-    scenario = Scenario(location=[-2573.13916015625, 3292.256103515625, 13.241103172302246], 
+    scenario = Scenario(location=[-1263.05517578125, 214.73085021972656, 61.155460357666016], 
                         weather="SUNNY", time=[9,10], vehicle = "voltic", drivingMode=-1) #manual driving
     
+    #scenario = Scenario(weather="SUNNY", time=[9,10], vehicle = "voltic", drivingMode=-1) #manual driving
+    
     # Send the Start request to DeepGTAV. Dataset is set as default, we only receive frames at 10Hz (320, 160)
-    client.sendMessage(Start(scenario=scenario, dataset=Dataset(frame=[800,600])))
+    client.sendMessage(Start(scenario=scenario, dataset=Dataset(rate=30, frame=[800,600], steering=True)))
     
     #model = Model()
     model = NVIDIA(device=device).to(device)
-    model.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"))
+    model.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00265.pth"))
+    
     model.eval()
     images = list()
     # Start listening for messages coming from DeepGTAV. We do it for 80 hours
@@ -59,23 +62,30 @@ if __name__ == '__main__':
             # The frame is a numpy array that can we pass through a CNN for example     
             image = frame2numpy(message['frame'], (800,600))
             
+            image = image[200:480, :]
+            
             image = F.to_pil_image(image[..., ::-1])
-            image = F.resize(image,(240,400))
+            image = F.resize(image,(140,400))
             images.append(image)
             image = F.to_tensor(image)            
             image = image.unsqueeze(0)
             
             steeringAngle = model(image.to(device))
             #commands = model.run(image)
-            
             steeringAngle = steeringAngle.cpu().detach().numpy()[0].item()
             
-            print(steeringAngle)
+            #steeringAngle = bf.reverse_normalized_steering(steeringAngle.cpu().detach().numpy()[0].item())
+            
+            print(steeringAngle, message["steering"])
             
             # We send the commands predicted by the agent back to DeepGTAV to control the vehicle
-            client.sendMessage(Commands(0.3, 0.0, steeringAngle))
+            client.sendMessage(Commands(0.5, 0.0,  steeringAngle))
         except KeyboardInterrupt:
-            break
+            i = input('Paused. Press p to continue and q to exit... ')
+            if i == "p":
+                continue
+            elif i == "q":
+                break
             
     # We tell DeepGTAV to stop
     client.sendMessage(Stop())
@@ -87,7 +97,7 @@ if __name__ == '__main__':
 len(images)
 
 
-plt.imshow(np.array(images[30]))
+plt.imshow(np.array(images[20]))
 
 
 

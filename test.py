@@ -38,6 +38,16 @@ image = io.imread(img_name)
 
 image = image[200:480,:]
 
+image = bf.preprocess(image)
+
+F.to_pil_image(image)
+
+torch.mean(image)
+
+
+
+
+
 mmap = image[520:580,56:116]
 plt.imshow(mmap)
 mmap.shape
@@ -72,10 +82,12 @@ mapnet(b["img"].to(device), b["mmap"].to(device))
 
 
 
+sct = mss.mss()
+mon = {'top': top, 'left': left, 'width': 800, 'height': 600}
 
-
-
-
+sct_img = sct.grab(mon)
+image = Image.frombytes('RGB', sct_img.size, sct_img.rgb)
+image
 
 
 

@@ -26,18 +26,18 @@ if __name__ == '__main__':
     test_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess)
     
     train_dl = DataLoader(train_dataset, 
-                            batch_size=256, 
+                            batch_size=512, 
                             sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     
     test_dl = DataLoader(test_dataset, 
-                            batch_size=256,
+                            batch_size=512,
                             num_workers=10)
 
 
     nvidia = NVIDIA(device = device).to(device) #qui inserire modello da trainare
-    nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00125.pth"), strict=False)
+    #nvidia.load_state_dict(torch.load("./Data/models/NVIDIA/checkpoint/00065.pth"))
     
     
     trainer = Trainer(nvidia, 
@@ -45,25 +45,28 @@ if __name__ == '__main__':
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
     
+    
     trainer.train_model(train_dl,
                         max_epoch=100, 
                         steps_per_epoch=0,
                         lr=0.01,
                         gamma = 0.8,
-                        weight_decay=1e-6,
+                        weight_decay=0,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=0)
+                        ckp_epoch=165)
+    
     
     print('Starting test...')
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
     
     
-    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_sequential.csv', index_col=0)
+    data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
     a=1000
     plt.plot(bf.reverse_normalized_steering(o[1:a]))
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
+    
     
     
     """
@@ -78,7 +81,7 @@ if __name__ == '__main__':
     
 
 #== Best Result ==
-#Total Test Loss:  0.0909 --- MAE:  7.8666
+#Total Test Loss:  0.0290 --- MAE:  4.0833 --- --- RMSE:  0.0815
 
 
 
