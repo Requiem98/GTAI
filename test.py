@@ -32,7 +32,7 @@ inception.load_state_dict(state_dict_backbone, strict=False)
 
 
 
-img_name = os.path.join("./Data/images/image2000.jpg")
+img_name = os.path.join("./Data/images/image4065.jpg")
  
 image = io.imread(img_name)
 
@@ -49,9 +49,13 @@ torch.mean(image)
 
 
 mmap = image[520:580,56:116]
+mmap[34:43,27:36] = 0
 plt.imshow(mmap)
-mmap.shape
 
+
+pointer = mmap[35:41,27:34] = 0
+
+plt.imshow(pointer)
 plt.imshow(image)
 
 image.shape

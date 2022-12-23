@@ -180,7 +180,8 @@ if __name__ == '__main__':
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=512, 
-                            sampler=bf.SteeringSampler(train_dataset), 
+                            shuffle=True,
+                            #sampler=bf.SteeringSampler(train_dataset), 
                             num_workers=10)
 
     
@@ -190,13 +191,14 @@ if __name__ == '__main__':
 
 
     mapnet = MapNet(device = device).to(device) #qui inserire modello da trainare
+    #mapnet.load_state_dict(torch.load("./Data/models/MapNet/checkpoint/00095.pth"))
     
     
     trainer = Trainer(mapnet, 
                       ckp_dir = CKP_DIR, 
                       score_dir = SCORE_DIR, 
                       score_file = SCORE_FILE)
-
+    
     
     trainer.train_model(train_dl,
                         max_epoch=100, 
@@ -206,7 +208,8 @@ if __name__ == '__main__':
                         weight_decay=0,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=15)
+                        ckp_epoch=95)
+    
     
     print('Starting test...')
     test_tot_loss, mae, rmse, o = trainer.test_model(test_dl)
@@ -214,7 +217,7 @@ if __name__ == '__main__':
    
     data = pd.read_csv(DATA_ROOT_DIR + 'data_test_norm.csv', index_col=0)
     
-    a=100
+    a=1000
     plt.plot(bf.reverse_normalized_steering(o[1:a]))
     plt.plot(np.arange(a), data["steeringAngle"][:a], alpha=0.5)
     
@@ -223,7 +226,8 @@ if __name__ == '__main__':
     
     
 #== Best Result ==
-#Total Test Loss:  0.0909 --- MAE:  7.8666
+#Total Test Loss:  0.0036 --- MAE:  1.1155 epoch 30
+#Total Test Loss:  0.0090 --- MAE:  1.0524 epoch 95
 
 
 
