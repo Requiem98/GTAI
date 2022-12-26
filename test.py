@@ -40,11 +40,14 @@ image = image[200:480,:]
 
 image = bf.preprocess(image)
 
+image_n = (image - torch.mean(image)) / torch.std(image)
+
+
+
 F.to_pil_image(image)
 
-torch.mean(image)
 
-
+np.random.randn(3,3).size
 
 
 
@@ -94,9 +97,88 @@ image = Image.frombytes('RGB', sct_img.size, sct_img.rgb)
 image
 
 
+img_name = os.path.join("./Data/images/image4065.jpg")
+ 
+image = io.imread(img_name)
+
+full_img = image[200:480,:]
+
+image = F.to_pil_image(full_img)
+image = F.to_tensor(image)
+
+image = image.unsqueeze(0)
+
+
+#===============================================================================
+
+segment_data = pd.DataFrame()
+
+segment_data["image"] = glob.glob("images*/*")
+segment_data["mask"] = glob.glob("labels*/*")
 
 
 
+segment_data.to_csv("segment_data.csv")
 
 
 
+ds = bf.GTA_segment_Dataset(csv_file = "segment_data.csv", root_dir="C:/Users/amede/Downloads/segmentation dataset/", transform=bf.preprocess_segment)
+
+out = ds.__getitem__(12)
+
+F.to_pil_image(out["img"])
+F.to_pil_image(out["mask"])
+
+out["mask"].shape
+
+img_name = os.path.join("C:/Users/amede/Downloads/segmentation dataset/labels1/00012.png")
+ 
+image = io.imread(img_name)
+image = Image.open(img_name)
+
+image = np.array(image)
+
+image = np.array(image)
+
+image2 = np.concatenate(([image], [np.zeros((1052, 1914))], [np.zeros((1052, 1914))]), axis=0)
+
+image2.shape
+
+torch.cat((image.unsqueeze(2), image.unsqueeze(2), image.unsqueeze(2)), dim=2)
+
+image+100
+
+b/2
+
+a/2
+
+plt.imshow(image2.transpose(1,2,0))
+
+image[400:]
+
+
+F.resize(F.to_pil_image(image[400:900]), (140,400))
+
+plt.imshow(image)
+
+
+F.to_pil_image(image).load()[0,0]
+
+pred
+
+nn.functional.cross_entropy(torch.rand((1,30,140,400)),  torch.tensor(image.flatten()).unsqueeze(0))
+
+image
+
+np.array(F.resize(image, (140,400)))
+
+
+
+nn.CrossEntropyLoss()(torch.rand((1,30,140,400)),  torch.tensor(image[:140, :400], dtype=torch.int64).unsqueeze(0))
+
+mask = np.zeros((1052, 1914), dtype=np.int64)
+for i, v in enumerate(range(30)):
+    
+    mask[image == v] = i
+
+mask.shape

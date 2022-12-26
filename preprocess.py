@@ -4,12 +4,12 @@ import baseFunctions as bf
 
 #========================== Initial preprocess ================================
 
-data = pd.read_csv('./Data/data.csv', sep=';', index_col=0)
+data = pd.read_csv('./Data/data3.csv', sep=';', index_col=0)
 
 
-data.drop(data.index[:100], inplace=True)
+data.drop(data.index[:126], inplace=True)
 
-data.drop(data.index[-200:], inplace=True)
+data.drop(data.index[-100:], inplace=True)
 
 def converter(array):
     
@@ -27,9 +27,13 @@ data["acceleration"] = converter(data["acceleration"].array)
 data["speed"] = converter(data["speed"].array)
 data["steeringAngle"] = converter(data["steeringAngle"].array)
 
-data.to_csv("./Data/data.csv")
 
-data["image"] = data["image"].apply(lambda x: "images/"+x)
+data["steeringAngle"].hist(bins=80)
+
+data["image"] = data["image"].apply(lambda x: "images3/"+x)
+
+data.to_csv("./Data/images3.csv")
+
 
 
 #========================== Initial preprocess ================================
@@ -132,10 +136,13 @@ plt.hist(data_test["steeringAngle"], bins=80)
 plt.hist(data_train["steeringAngle"], bins=80, alpha=0.5)
 
 
+#=============================== Segmentation dataset ============================
 
 
+data = pd.read_csv("C:/Users/amede/Downloads/segmentation dataset/segment_data.csv", index_col=0)
 
-
-
-
+data_train, data_test = bf.create_train_test_dataframe(data, group_n=1, 
+                                                       test_size=0.2, 
+                                                       save_dir = "C:/Users/amede/Downloads/segmentation dataset/", 
+                                                       test_file_name = "segment_data_test.csv", train_file_name = "segment_data_train.csv", save=True)
 

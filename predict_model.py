@@ -74,7 +74,7 @@ def lerp(a, b, t):
 def predict_loop(device):
     
     model = MapNet(device = device).to(device) #qui inserire modello da trainare
-    model.load_state_dict(torch.load("./Data/models/MapNet/checkpoint/00015.pth"))
+    model.load_state_dict(torch.load("./Data/models/MapNet/checkpoint/00195.pth"))
     model.eval()
     
     timer = FPSTimer()

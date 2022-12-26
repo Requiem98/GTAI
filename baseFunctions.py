@@ -1,4 +1,5 @@
 from libraries import *
+from torch import Tensor
 
 def save_object(obj, filename):
     with open(filename, 'wb') as outp:  # Overwrites any existing file.
@@ -134,16 +135,27 @@ test_preprocess = T.Compose([
     T.ToTensor(),
 ])
 
+preprocess_segment = T.Compose([
+    T.ToPILImage(),
+    T.Resize((140,400)),
+    T.ToTensor()
+])
+
+#============================================================================
+#====================== Steering angle dataset ===========================
+#============================================================================
+
 
 class GTADataset(Dataset):
 
-    def __init__(self, csv_file, root_dir, transform=None, mmap=False, img_dir=""):
+    def __init__(self, csv_file, root_dir, transform=None, mmap=False, normalize=True, img_dir=""):
 
         self.statistics = pd.read_csv(root_dir + csv_file, index_col=0)
         self.root_dir = root_dir
         self.img_dir = img_dir
         self.transform = transform
         self.mmap = mmap
+        self.normalize=normalize
     
 
     def __len__(self):
@@ -173,12 +185,16 @@ class GTADataset(Dataset):
                 mmap = image[520:580,56:116]
                 mmap = F.to_pil_image(mmap)
                 mmap = F.to_tensor(mmap)
+                if(self.normalize):
+                    mmap = (mmap - torch.mean(mmap)) / torch.std(mmap)
                 mmaps.append(mmap)
         
             image = image[200:480, :]
         
             if self.transform:
                 image = self.transform(image)
+                if(self.normalize):
+                    image = (image - torch.mean(image)) / torch.std(image)
         
             images.append(image)
         
@@ -207,15 +223,118 @@ class GTADataset(Dataset):
 
         return sample
     
+
+#============================================================================
+#====================== Sørensen–Dice coefficient ===========================
+#============================================================================
+    
+def dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, epsilon: float = 1e-6):
+    # Average of Dice coefficient for all batches, or for a single mask
+    assert input.size() == target.size()
+    assert input.dim() == 3 or not reduce_batch_first
+
+    sum_dim = (-1, -2) if input.dim() == 2 or not reduce_batch_first else (-1, -2, -3)
+
+    inter = 2 * (input * target).sum(dim=sum_dim)
+    sets_sum = input.sum(dim=sum_dim) + target.sum(dim=sum_dim)
+    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
+
+    dice = (inter + epsilon) / (sets_sum + epsilon)
+    return dice.mean()
+
+
+def multiclass_dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, epsilon: float = 1e-6):
+    # Average of Dice coefficient for all classes
+    return dice_coeff(input.flatten(0, 1), target.flatten(0, 1), reduce_batch_first, epsilon)
+
+
+def dice_loss(input: Tensor, target: Tensor, multiclass: bool = False):
+    # Dice loss (objective to minimize) between 0 and 1
+    fn = multiclass_dice_coeff if multiclass else dice_coeff
+    return 1 - fn(input, target, reduce_batch_first=True)
     
     
     
+#============================================================================
+#====================== Segmentation dataset ===========================
+#============================================================================
+
+   
+
+class GTA_segment_Dataset(Dataset):
+
+    def __init__(self, csv_file, root_dir, transform=None, img_dir=""):
+
+        self.data_csv = pd.read_csv(root_dir + csv_file, index_col=0)
+        self.root_dir = root_dir
+        self.img_dir = img_dir
+        self.transform = transform
     
+
+    def __len__(self):
+        return len(self.data_csv)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        
+        img_names = self.root_dir + self.img_dir + self.data_csv.iloc[idx, 0]
     
+        if(isinstance(img_names, str)):
+            img_names = [img_names]
+            
+            
+        images = list()
+        
+        for im_name in img_names:
+            
+            image = io.imread(im_name)
+        
+            image = image[400:900]
+        
+            if self.transform:
+                image = self.transform(image)
+        
+            images.append(image)
+        
+        if(len(img_names)>1):
+            images = [el.unsqueeze(0) for el in images]
+            
+        images = torch.cat(images)
+        
+        
+        mask_names = self.root_dir + self.img_dir + self.data_csv.iloc[idx, 1]
+        
+        if(isinstance(mask_names, str)):
+            mask_names = [mask_names]
+            
+            
+        masks = list()
+        
+        for mask_name in mask_names:
+            
+            mask = np.array(Image.open(mask_name))
+        
+            mask = mask[400:900]
+        
+            if self.transform:
+                mask = F.to_pil_image(mask)
+                mask = F.resize(mask, (140,400))
+                mask = torch.tensor(np.array(mask), dtype=torch.int64)
+        
+            masks.append(mask)
+        
+        if(len(mask_names)>1):
+            masks = [el.unsqueeze(0) for el in masks]
+            
+        masks = torch.cat(masks)
     
-    
-    
-    
+            
+            
+        sample = {'img': images, 'mask': masks}
+
+        return sample
     
     
     
