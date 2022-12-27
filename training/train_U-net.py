@@ -37,8 +37,8 @@ if __name__ == '__main__':
                             num_workers=10)
 
     
-    unet = UNet(device = device, n_channels=3, n_classes=35).to(device) #qui inserire modello da trainare
-    #unet.load_state_dict(torch.load("./Data/models/Unet/checkpoint/00095.pth"))
+    unet = UNet(device = device, n_channels=3, n_classes=7).to(device) #qui inserire modello da trainare
+    #unet.load_state_dict(torch.load("./Data/models/Unet/checkpoint/00180.pth"))
     
     
     trainer = Trainer(unet, 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
                         weight_decay=1e-10,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=95)
+                        ckp_epoch=0)
     
     
     
@@ -95,3 +95,25 @@ if __name__ == '__main__':
     plt.plot(hs["loss_train"])
     plt.plot(torch.tensor(hs["dice_score"]).cpu())
     """
+    
+    
+    
+    """
+    
+    import torch
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.allow_tf32 = True
+    data = torch.randn([16, 64, 140, 400], dtype=torch.float, device='cuda', requires_grad=True)
+    net = torch.nn.Conv2d(64, 7, kernel_size=[1, 1], padding=[0, 0], stride=[1, 1], dilation=[1, 1], groups=1)
+    net = net.cuda().float()
+    out = net(data)
+    out.backward(torch.randn_like(out))
+    torch.cuda.synchronize()
+    
+    """
+    
+    
+    
+    

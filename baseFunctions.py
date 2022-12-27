@@ -322,6 +322,15 @@ class GTA_segment_Dataset(Dataset):
                 mask = F.to_pil_image(mask)
                 mask = F.resize(mask, (140,400))
                 mask = torch.tensor(np.array(mask), dtype=torch.int64)
+                #remove not usefull classes
+                mask[((mask != 7) & (mask != 24) & (mask != 26) & (mask != 28) & (mask != 32) & (mask != 33))] = 0
+                
+                mask[(mask == 7)] = 1
+                mask[(mask == 24)] = 2
+                mask[(mask == 26)] = 3
+                mask[(mask == 28)] = 4
+                mask[(mask == 32)] = 5
+                mask[(mask == 33)] = 6
         
             masks.append(mask)
         

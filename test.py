@@ -1,6 +1,7 @@
 from libraries import *
 import baseFunctions as bf
 from models import MapNet
+from torchvision.transforms import functional as f
 CKP_DIR = "./Data/models/Inception/checkpoint/"
 
 
@@ -111,74 +112,74 @@ image = image.unsqueeze(0)
 
 #===============================================================================
 
-segment_data = pd.DataFrame()
-
-segment_data["image"] = glob.glob("images*/*")
-segment_data["mask"] = glob.glob("labels*/*")
-
-
-
-segment_data.to_csv("segment_data.csv")
-
-
 
 ds = bf.GTA_segment_Dataset(csv_file = "segment_data.csv", root_dir="C:/Users/amede/Downloads/segmentation dataset/", transform=bf.preprocess_segment)
 
 out = ds.__getitem__(12)
 
 F.to_pil_image(out["img"])
-F.to_pil_image(out["mask"])
+F.to_pil_image(out["mask"].to(dtype=torch.uint8))
 
 out["mask"].shape
 
-img_name = os.path.join("C:/Users/amede/Downloads/segmentation dataset/labels1/00012.png")
+img_name = os.path.join("C:/Users/amede/Downloads/segmentation dataset/labels1/00454.png")
+img_name2 = os.path.join("C:/Users/amede/Downloads/segmentation dataset/images1/00454.png")
  
-image = io.imread(img_name)
-image = Image.open(img_name)
+image = io.imread(img_name2)
+mask = Image.open(img_name)
 
 image = np.array(image)
-
-image = np.array(image)
-
-image2 = np.concatenate(([image], [np.zeros((1052, 1914))], [np.zeros((1052, 1914))]), axis=0)
-
-image2.shape
-
-torch.cat((image.unsqueeze(2), image.unsqueeze(2), image.unsqueeze(2)), dim=2)
-
-image+100
-
-b/2
-
-a/2
-
-plt.imshow(image2.transpose(1,2,0))
-
-image[400:]
-
-
-F.resize(F.to_pil_image(image[400:900]), (140,400))
+mask = np.array(mask)
 
 plt.imshow(image)
 
-
-F.to_pil_image(image).load()[0,0]
-
-pred
-
-nn.functional.cross_entropy(torch.rand((1,30,140,400)),  torch.tensor(image.flatten()).unsqueeze(0))
-
-image
-
-np.array(F.resize(image, (140,400)))
-
-
-
-nn.CrossEntropyLoss()(torch.rand((1,30,140,400)),  torch.tensor(image[:140, :400], dtype=torch.int64).unsqueeze(0))
 
 mask = np.zeros((1052, 1914), dtype=np.int64)
 for i, v in enumerate(range(30)):
     
     mask[image == v] = i
 
-mask.shape
+
+
+
+np.unique(mask)
+
+mask2 = mask.copy()
+
+
+mask2[((mask != 7) & (mask != 24) & (mask != 26) & (mask != 28) & (mask != 32) & (mask != 33))] = 0
+
+
+
+plt.imshow(mask2)
+
+plt.imshow(image)
+
+
+
+
+# 1 = cofano?
+# 4 = ??
+# 5 = ??
+# 6 = ?? importante
+# 7 = road
+# 8 = sidewalk
+# 11 = building
+# 12 = wall
+# 13= ???
+# 14= ??
+# 15=??
+# 17 = pole
+# 19 = lighttraffic
+# 20 = ??
+# 21 = vegetation
+# 22 = mountain
+# 23 = sky
+# 24 = Human
+# 26 = cars
+# 28 = truck
+#32 = motorcycle
+# 33 = bycicle
+
+
+

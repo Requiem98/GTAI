@@ -27,7 +27,6 @@ if __name__ == '__main__':
     
     train_dataset = bf.GTADataset("data_train_norm.csv", DATA_ROOT_DIR, bf.preprocess, mmap=True)
     val_dataset = bf.GTADataset("data_test_norm.csv", DATA_ROOT_DIR, bf.test_preprocess, mmap=True)
-    test_dataset = bf.GTADataset("images3.csv", DATA_ROOT_DIR, bf.test_preprocess, mmap=True)
     
     train_dl = DataLoader(train_dataset, 
                             batch_size=512, 
@@ -39,13 +38,10 @@ if __name__ == '__main__':
                             batch_size=512, 
                             num_workers=10)
     
-    test_dl = DataLoader(test_dataset, 
-                            batch_size=682, 
-                            num_workers=0)
 
 
-    mapnet = MapNet(device = device).to(device) #qui inserire modello da trainare
-    #mapnet.load_state_dict(torch.load("./Data/models/MapNet/checkpoint/00200.pth"))
+    mapnet = MapNet(device = device).to(device)
+    
     
     
     trainer = Trainer(mapnet, 
@@ -75,21 +71,9 @@ if __name__ == '__main__':
     plt.plot(bf.reverse_normalized_steering(o1[1:a]))
     plt.plot(np.arange(a), val_dataframe["steeringAngle"][:a], alpha=0.5)
     
-    """
-    print('Starting test...')
-    test_tot_loss, mae, rmse, o2 = trainer.test_model(test_dl)
-    
-    test_dataframe = pd.read_csv(DATA_ROOT_DIR + 'images3.csv', index_col=0)
-    
-    plt.plot(bf.reverse_normalized_steering(o2[1:]))
-    plt.plot(np.arange(len(test_dataframe)), test_dataframe["steeringAngle"], alpha=0.5)
-    
-    """
     
 #== Best Result ==
-#Total Test Loss:  0.0036 --- MAE:  1.1155 epoch 30
 #Total Test Loss:  0.0090 --- MAE:  1.0524 epoch 95
-#Total Test Loss:  0.0017 --- MAE:  0.7374 epoch 195     4.8517
 
 
 

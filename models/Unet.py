@@ -285,10 +285,10 @@ class Trainer():
                 masks = F.one_hot(masks, self.model.n_classes).permute(0, 3, 1, 2).float()
                 preds = F.one_hot(preds.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
                 # compute the Dice score, ignoring background
-                dice_score += bf.multiclass_dice_coeff(preds[:, 1:], masks[:, 1:], reduce_batch_first=False) / batch["mask"].shape[0]
+                dice_score += bf.multiclass_dice_coeff(preds[:, 1:], masks[:, 1:], reduce_batch_first=False)
 
         self.model.train()
-        return dice_score
+        return dice_score/len(val_data)
                 
                 
                 
