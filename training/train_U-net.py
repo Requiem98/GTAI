@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     
     unet = UNet(device = device, n_channels=3, n_classes=7).to(device) #qui inserire modello da trainare
-    #unet.load_state_dict(torch.load("./Data/models/Unet/checkpoint/00180.pth"))
+    unet.load_state_dict(torch.load("./Data/models/Unet/checkpoint/00100.pth"))
     
     
     trainer = Trainer(unet, 
@@ -55,15 +55,15 @@ if __name__ == '__main__':
                         weight_decay=1e-10,
                         log_step=1, 
                         ckp_save_step = 5,
-                        ckp_epoch=0)
+                        ckp_epoch=100)
     
     
     
     """
-    test_dataset = bf.GTADataset("images3.csv", DATA_ROOT_DIR, transform=bf.preprocess_segment, normalize=False)
+    test_dataset = bf.GTADataset("images3(TEST).csv", DATA_ROOT_DIR, transform=bf.preprocess_segment, normalize=False)
     
-    image = test_dataset.__getitem__(20)["img"]
-    mask = test_dataset.__getitem__(3)["mask"]
+    image = test_dataset.__getitem__(400)["img"]
+    #mask = test_dataset.__getitem__(3)["mask"]
     
     plt.imshow(image.numpy().transpose(1,2,0))
     
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     
     pred = pred.argmax(dim=1)
 
-    
+    pred.flatten().shape
         
     figure, ax = plt.subplots(2,1, figsize=(20,10))
     ax[0].imshow(image.numpy().transpose(1,2,0))
@@ -90,30 +90,13 @@ if __name__ == '__main__':
     ax[1].imshow(pred.cpu()[0][:40, 180:200])
     
 
-    hs = bf.read_object(SCORE_DIR+"00095_history_score.pkl")
+    hs = bf.read_object(SCORE_DIR+"00100_history_score.pkl")
 
     plt.plot(hs["loss_train"])
     plt.plot(torch.tensor(hs["dice_score"]).cpu())
-    """
+
     
-    
-    
-    """
-    
-    import torch
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cudnn.deterministic = False
-    torch.backends.cudnn.allow_tf32 = True
-    data = torch.randn([16, 64, 140, 400], dtype=torch.float, device='cuda', requires_grad=True)
-    net = torch.nn.Conv2d(64, 7, kernel_size=[1, 1], padding=[0, 0], stride=[1, 1], dilation=[1, 1], groups=1)
-    net = net.cuda().float()
-    out = net(data)
-    out.backward(torch.randn_like(out))
-    torch.cuda.synchronize()
-    
-    """
-    
+    """ 
     
     
     

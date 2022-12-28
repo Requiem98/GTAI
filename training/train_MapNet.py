@@ -87,9 +87,8 @@ if __name__ == '__main__':
     """
     
 #== Best Result ==
-#Total Test Loss:  0.0036 --- MAE:  1.1155 epoch 30
 #Total Test Loss:  0.0090 --- MAE:  1.0524 epoch 95
-#Total Test Loss:  0.0017 --- MAE:  0.7374 epoch 195     4.8517
+#Total Test Loss:  0.0017 --- MAE:  0.7374 epoch 195    
 
 
 
